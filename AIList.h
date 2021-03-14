@@ -15,8 +15,12 @@
 //-------------------------------------------------------------------------------------
 #include "khash.h"
 #include "kseq.h"
-#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
-#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
+
+#include "GBase.h"
+
+
+//#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
+//#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define MAXC 10							//max number of components
 //-------------------------------------------------------------------------------------
 typedef struct {
@@ -27,16 +31,16 @@ typedef struct {
 
 typedef struct{
 	char *name;    						//name of the contig
-	int64_t nr, mr;						//number of regions
+	int32_t nr, mr;						//number of regions
 	gdata_t *glist;						//regions data
 	int nc, lenC[MAXC], idxC[MAXC];		//components
-	uint32_t *maxE;						//augmentation	
+	uint32_t *maxE;						//augmentation
 } ctg_t;
 
-typedef struct {	
+typedef struct {
 	ctg_t *ctg;        					// list of contigs (of size _n_ctg_)
 	int32_t nctg, mctg; 				// number and max number of contigs
-	void *hc;             				// dict for converting contig names to int    
+	void *hc;             				// dict for converting contig names to int
 } ailist_t;
 
 //-------------------------------------------------------------------------------------
@@ -63,7 +67,7 @@ int32_t get_ctg(const ailist_t *ail, const char *chr);
 uint32_t bSearch(gdata_t* As, uint32_t idxS, uint32_t idxE, uint32_t qe);
 
 //Query ailist intervals
-uint32_t ailist_query(ailist_t *ail, char *chr, uint32_t qs, uint32_t qe, uint32_t *mr, uint32_t **ir);
+uint32_t ailist_query(ailist_t *ail, int32_t gid, uint32_t qs, uint32_t qe, uint32_t *mr, uint32_t **ir);
 
 //Free ailist data
 void ailist_destroy(ailist_t *ail);
@@ -144,6 +148,6 @@ KSTREAM_INIT(gzFile, gzread, 0x10000)
 #define EXPAND(a, m) do { \
 		(m) = (m)? (m) + ((m)>>1) : 16; \
 		REALLOC((a), (m)); \
-	}while (0) 
+	}while (0)
 
 #endif

@@ -1,6 +1,7 @@
 CXX   := $(if $(CXX),$(CXX),g++)
-CXXFLAGS= -g -Wall -std=c++11 -fpermissive
-CFLAGS=-g -Wall -Wc++-compat
+GCLIB:=../gclib
+INC:= -I. -I$(GCLIB)
+CXXFLAGS= -g -Wall $(INC) -std=c++11 -fpermissive
 LIBS=-lz
 
 LINKER  := $(if $(LINKER),$(LINKER),g++)
@@ -17,9 +18,9 @@ all:$(EXE)
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-bedcov: bedcov-iitree.o
+bedcov: bedcov-iitree.o $(GCLIB)/GBase.o
 		${LINKER} ${LDFLAGS} -o $@ ${filter-out %.a %.so, $^} ${LIBS}
-ailist: AIList.o ailist_main.o
+ailist: AIList.o ailist_main.o $(GCLIB)/GBase.o
 		${LINKER} ${LDFLAGS} -o $@ ${filter-out %.a %.so, $^} ${LIBS}
 
 
@@ -28,4 +29,4 @@ AIList.o: AIList.cpp AIList.h
 
 
 clean:
-		rm -fr *.o a.out *.dSYM $(EXE)
+		rm -fr *.o a.out *.dSYM $(GCLIB)/GBase.o $(EXE)

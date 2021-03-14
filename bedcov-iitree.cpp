@@ -5,6 +5,9 @@
 #include "IITreeBFS.h"
 #include "khash.h"
 #include "kseq.h"
+
+#include "GBase.h"
+
 KSTREAM_INIT(gzFile, gzread, 0x10000)
 
 typedef IITree<int32_t, int32_t> ITree;
@@ -82,22 +85,28 @@ int main(int argc, char *argv[])
 	fp = gzopen(argv[2], "r");
 	assert(fp);
 	ks = ks_init(fp);
-	std::vector<size_t> a;
+	std::vector<size_t> a; //it will receive the results
 	while (ks_getuntil(ks, KS_SEP_LINE, &str, 0) >= 0) {
 		int32_t st1, en1;
+		ITree *tree=NULL;
 		char *ctg;
+		int numhits=0;
 		ctg = parse_bed(str.s, &st1, &en1);
 		if (ctg == 0) continue;
+		a.clear();
 		khint_t k = kh_get(idx, h, ctg);
-		if (k == kh_end(h)) {
-			printf("%s\t%d\t%d\t0\t0\n", ctg, st1, en1);
-			continue;
+		if (k != kh_end(h)) {
+		  tree = kh_val(h, k);
+		  tree->overlap(st1, en1, a);
 		}
-		ITree *tree = kh_val(h, k);
-		tree->overlap(st1, en1, a);
+		printf(">Qry_%s:[%d-%d] (%d hits)\n", ctg, st1, en1, (int)a.size());
+		if (a.size()==0) continue;
 		int32_t cnt = 0, cov = 0, cov_st = 0, cov_en = 0;
 		for (size_t j = 0; j < a.size(); ++j) {
 			int32_t st0 = tree->start(a[j]), en0 = tree->end(a[j]);
+			printf("%s\t%d\t%d\n", ctg, st0, en0);
+			continue;
+
 			if (st0 < st1) st0 = st1;
 			if (en0 > en1) en0 = en1;
 			if (st0 > cov_en) {
@@ -106,8 +115,8 @@ int main(int argc, char *argv[])
 			} else cov_en = cov_en > en0? cov_en : en0;
 			++cnt;
 		}
-		cov += cov_en - cov_st;
-		printf("%s\t%d\t%d\t%d\t%d\n", ctg, st1, en1, cnt, cov);
+		//cov += cov_en - cov_st;
+		//printf("%s\t%d\t%d\t%d\t%d\n", ctg, st1, en1, cnt, cov);
 	}
 	free(str.s);
 	ks_destroy(ks);
