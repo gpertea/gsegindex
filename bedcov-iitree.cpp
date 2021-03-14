@@ -7,6 +7,7 @@
 #include "kseq.h"
 
 #include "GBase.h"
+#include "GVec.hh"
 
 KSTREAM_INIT(gzFile, gzread, 0x10000)
 
@@ -102,11 +103,13 @@ int main(int argc, char *argv[])
 		printf(">Qry_%s:[%d-%d] (%d hits)\n", ctg, st1, en1, (int)a.size());
 		if (a.size()==0) continue;
 		int32_t cnt = 0, cov = 0, cov_st = 0, cov_en = 0;
+		GVec<GSeg> rlst(a.size());
 		for (size_t j = 0; j < a.size(); ++j) {
-			int32_t st0 = tree->start(a[j]), en0 = tree->end(a[j]);
-			printf("%s\t%d\t%d\n", ctg, st0, en0);
+			//int32_t st0 = tree->start(a[j]), en0 = tree->end(a[j]);
+			GSeg seg(tree->start(a[j]), tree->end(a[j]));
+			rlst.Add(seg);
 			continue;
-
+			/*
 			if (st0 < st1) st0 = st1;
 			if (en0 > en1) en0 = en1;
 			if (st0 > cov_en) {
@@ -114,7 +117,11 @@ int main(int argc, char *argv[])
 				cov_st = st0, cov_en = en0;
 			} else cov_en = cov_en > en0? cov_en : en0;
 			++cnt;
+			*/
 		}
+		rlst.Sort();
+		for (int i=0;i<rlst.Count();++i)
+		  printf("%s\t%d\t%d\n", ctg, rlst[i].start, rlst[i].end);
 		//cov += cov_en - cov_st;
 		//printf("%s\t%d\t%d\t%d\t%d\n", ctg, st1, en1, cnt, cov);
 	}

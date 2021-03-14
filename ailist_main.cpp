@@ -12,46 +12,25 @@
 #define BUILD_VERSION "0"
 #define VERSION MAJOR_VERSION "." MINOR_VERSION "." REVISION_VERSION
 
+#include "GVec.hh"
+
 int ailist_help(int argc, char **argv, int exit_code);
 
 int main(int argc, char **argv)
 {
-    int cLen = 20, pmode = 0;//print mode: 0 print hitd[i]; 1: print total; 2: print components
-    for(int i=3; i<argc; i++){
-    	if(strcmp(argv[i], "-L")==0 && i+1<argc)
-    		cLen = atoi(argv[i+1]);
-    	else if(strcmp(argv[i], "-P")==0 && i+1<argc)
-    		pmode = atoi(argv[i+1]);
-    }
+    //int cLen = 20, pmode = 0;//print mode: 0 print hitd[i]; 1: print total; 2: print components
 	if(argc<3)
         return ailist_help(argc, argv, 0);
-
-   	clock_t start, end1, end2, end3;
-    start = clock();
-
     //1. Read interval data
     ailist_t *ail =  readBED(argv[1]);
-    end1 = clock();
     //printf("loading time: %f\n", ((double)(end1-start))/CLOCKS_PER_SEC);
 
     //2. Construct ailist
-    ailist_construct(ail, cLen);
-    /*
-    if(pmode==2){
-		for(int i=0;i<ail->nctg;i++){
-			ctg_t *p = &ail->ctg[i];
-			printf("%s\tnr= %lld, nc=%i\n", p->name, (long long)p->nr, p->nc);
-			for(int j=0;j<p->nc;j++)
-				printf("	%i\t%i  \n", p->idxC[j], p->lenC[j]);
-		}
-    }
-    */
-    end2 = clock();
-    //printf("constru time: %f\n", ((double)(end2-end1))/CLOCKS_PER_SEC);
+    ailist_construct(ail, 10);
 
     //3. Search
 	int64_t nol = 0;
-	uint32_t nhits=0, mr=1000000, m=0;
+	uint32_t nhits=0, mr=100;  //, m=0;
 	uint32_t *hits=malloc(mr*sizeof(uint32_t));
 
 	kstream_t *ks;
@@ -72,16 +51,22 @@ int main(int argc, char **argv)
 		//GMessage(">>> query interval [%d, %d] (%d results)\n", st1, en1, nhits);
 		printf(">Qry_%s:[%d-%d] (%d hits)\n", ctg, st1, en1, nhits);
 		if (nhits>0) {
+			GVec<GSeg> rlst(nhits);
 			for (int h=nhits-1;h>=0;--h) {
 			  gdata_t &hd = ail->ctg[ctgIdx].glist[hits[h]];
-			  printf("%s\t%d\t%d\n", ctg, hd.start, hd.end);
+			  GSeg seg(hd.start, hd.end);
+			  rlst.Add(seg);
+			  //printf("%s\t%d\t%d\n", ctg, hd.start, hd.end);
 			}
+			rlst.Sort();
+			for (int i=0;i<rlst.Count();++i)
+				printf("%s\t%d\t%d\n", ctg, rlst[i].start, rlst[i].end);
 		}
 		nol += nhits;
 		//if(pmode==1 && nhits>0)
 		// printf("%i\t%s:\t %i\t %i\t %ld\n", m++, ctg, st1, en1, (long)nhits);
 	}
-	end3 = clock();
+	//end3 = clock();
     //printf("Total %lld\n", (long long)nol);
     //printf("query time: %f\n", ((double)(end3-end2))/CLOCKS_PER_SEC);
 
