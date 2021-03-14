@@ -17,6 +17,7 @@
 #include "kseq.h"
 
 #include "GBase.h"
+#include "GVec.hh"
 
 
 //#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
@@ -26,7 +27,6 @@
 typedef struct {
     uint32_t start;      				//region start: 0-based
     uint32_t end;    					//region end: not inclusive
-    int32_t value;
 } gdata_t;
 
 typedef struct{

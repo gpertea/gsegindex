@@ -14,10 +14,13 @@
 
 #include "GVec.hh"
 
-int ailist_help(int argc, char **argv, int exit_code);
+int ailist_help(int argc, char **argv, int exit_code) {
+    fprintf(stderr,"%s, v%s\n" "usage:   %s database-file(.bed) query-file(.bed)\n",
+            PROGRAM_NAME, VERSION, PROGRAM_NAME);
+    return exit_code;
+}
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     //int cLen = 20, pmode = 0;//print mode: 0 print hitd[i]; 1: print total; 2: print components
 	if(argc<3)
         return ailist_help(argc, argv, 0);
@@ -52,7 +55,7 @@ int main(int argc, char **argv)
 		printf(">Qry_%s:[%d-%d] (%d hits)\n", ctg, st1, en1, nhits);
 		if (nhits>0) {
 			GVec<GSeg> rlst(nhits);
-			for (int h=nhits-1;h>=0;--h) {
+			for (int h=0;h<nhits;h++) {
 			  gdata_t &hd = ail->ctg[ctgIdx].glist[hits[h]];
 			  GSeg seg(hd.start, hd.end);
 			  rlst.Add(seg);
@@ -76,12 +79,5 @@ int main(int argc, char **argv)
 	ks_destroy(ks);
 	ailist_destroy(ail);
     return 0;
-}
-
-int ailist_help(int argc, char **argv, int exit_code)
-{
-    fprintf(stderr,"%s, v%s\n" "usage:   %s database-file(.bed) query-file(.bed) [-L coverage-length] \n",
-            PROGRAM_NAME, VERSION, PROGRAM_NAME);
-    return exit_code;
 }
 
