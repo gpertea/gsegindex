@@ -25,17 +25,17 @@ int main(int argc, char **argv) {
 	if(argc<3)
         return ailist_help(argc, argv, 0);
     //1. Read interval data
-    ailist_t *ail =  readBED(argv[1]);
+    TAIList ail;
+    readBED(ail, argv[1]);
     //printf("loading time: %f\n", ((double)(end1-start))/CLOCKS_PER_SEC);
 
     //2. Construct ailist
-    ailist_construct(ail, 10);
-
+    ail.build(10);
     //3. Search
 	int64_t nol = 0;
-	uint32_t nhits=0, mr=100;  //, m=0;
-	uint32_t *hits=malloc(mr*sizeof(uint32_t));
-
+	uint32_t nhits=0; //, mr=100;  //, m=0;
+	//uint32_t *hits=malloc(mr*sizeof(uint32_t));
+    GVec<int> hits;
 	kstream_t *ks;
 	kstring_t str = {0,0,0};
 	gzFile fp = gzopen(argv[2], "r");
@@ -47,16 +47,16 @@ int main(int argc, char **argv) {
 		ctg = parse_bed(str.s, &st1, &en1);
 		if (ctg == 0) continue;
 		nhits=0;
-		int32_t ctgIdx=get_ctg(ail, ctg);
+		int32_t ctgIdx=ail.get_ctg(ctg);
 		if (ctgIdx>=0) {
-		  nhits = ailist_query(ail, ctgIdx, st1, en1, &mr, &hits);
+		  nhits = ailist_query(ail, ctgIdx, st1, en1, hits);
 		}
 		//GMessage(">>> query interval [%d, %d] (%d results)\n", st1, en1, nhits);
 		printf(">Qry_%s:[%d-%d] (%d hits)\n", ctg, st1, en1, nhits);
 		if (nhits>0) {
 			GVec<GSeg> rlst(nhits);
-			for (int h=0;h<nhits;h++) {
-			  gdata_t &hd = ail->ctg[ctgIdx].glist[hits[h]];
+			for (uint h=0;h<nhits;h++) {
+			  GSeg &hd = *(ail.ctg[ctgIdx]->glist[hits[h]]);
 			  GSeg seg(hd.start, hd.end);
 			  rlst.Add(seg);
 			  //printf("%s\t%d\t%d\n", ctg, hd.start, hd.end);
@@ -74,10 +74,10 @@ int main(int argc, char **argv) {
     //printf("query time: %f\n", ((double)(end3-end2))/CLOCKS_PER_SEC);
 
   	free(str.s);
-	free(hits);
+	//free(hits);
 	gzclose(fp);
 	ks_destroy(ks);
-	ailist_destroy(ail);
+	//ailist_destroy(ail);
     return 0;
 }
 
