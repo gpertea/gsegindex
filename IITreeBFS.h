@@ -8,8 +8,8 @@
 template<typename S, typename T> // "S" is a scalar type; "T" is the type of data associated with each interval
 class IITree {
 	struct StackCell {
-		size_t x; // node
-		int w; // w: 0 if left child hasn't been processed
+		size_t x=0; // node
+		int w=0; // w: 0 if left child hasn't been processed
 		StackCell() {};
 		StackCell(size_t x_, int w_) : x(x_), w(w_) {};
 	};
@@ -62,6 +62,7 @@ public:
 		int t = 0;
 		StackCell stack[64];
 		out.clear();
+		//if (max_level < 0) return false;
 		stack[t++] = StackCell(0, 0); // push the root; this is a top down traversal
 		while (t) { // the following guarantees that numbers in out[] are always sorted
 			StackCell z = stack[--t];
@@ -77,6 +78,7 @@ public:
 				if (r < a.size()) stack[t++] = StackCell(r, 0);
 			}
 		}
+		//return out.size() > 0? true : false;
 	}
 	size_t size(void) const { return a.size(); }
 	const S &start(size_t i) const { return a[i].st; }

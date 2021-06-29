@@ -5,11 +5,11 @@
 //Radix sorting and one-pass loading based on lh3's cgranges: 6/20/2019
 //-----------------------------------------------------------------------------
 #include "AIList.h"
-
+#include "kxsort.hh"
 
 #define gdata_t_key(r) ((r).start)
 //KRADIX_SORT_INIT(intv, gdata_t, gdata_t_key, 4)
-KRADIX_SORT_INIT(intv, GSeg, gdata_t_key, 4)
+//KRADIX_SORT_INIT(intv, GSeg, gdata_t_key, 4)
 
 KHASH_MAP_INIT_STR(str, int32_t)
 
