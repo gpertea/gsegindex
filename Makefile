@@ -1,8 +1,8 @@
 CXX   := $(if $(CXX),$(CXX),g++)
-GCLIB:=../gclib
-INC:= -I. -I$(GCLIB)
-CXXFLAGS= -g -Wall -O2 $(INC) -std=c++11 -fpermissive
-LIBS=-lz
+GCLIB := ../gclib
+INC := -I. -I$(GCLIB)
+CXXFLAGS := -g -Wall -O2 $(INC) -std=c++11 -fpermissive
+LIBS := -lz
 
 LINKER  := $(if $(LINKER),$(LINKER),g++)
 DFLAGS := $(if $(LDFLAGS),$(LDFLAGS),-g)
@@ -10,10 +10,20 @@ DFLAGS := $(if $(LDFLAGS),$(LDFLAGS),-g)
 #LIB = AIList.o ailist_main.o
 #OBJS = $(addprefix $(OBJ)/, $(LIB))
 
-EXE=bedcov bedcov-bfs ailist
 
+ifneq (,$(findstring mingw,$(shell ${CXX} -dumpmachine)))
+ WINDOWS=1
+endif
 
-all:$(EXE)
+# File endings
+ifdef WINDOWS
+ LIBS += -lregex -lws2_32
+#else
+endif
+
+PROG=bedcov bedcov-bfs ailist
+
+all:$(PROG)
 
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
@@ -33,4 +43,4 @@ AIList.o: AIList.cpp AIList.h
 
 
 clean:
-		rm -fr *.o a.out *.dSYM $(GCLIB)/GBase.o $(EXE)
+		rm -fr $(PROG) *.exe *.o a.out *.dSYM $(GCLIB)/GBase.o
