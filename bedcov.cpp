@@ -4,6 +4,7 @@
 #include <getopt.h>
 #include "cgranges.h"
 #include "kseq.h"
+
 KSTREAM_INIT(gzFile, gzread, 0x10000)
 
 char *parse_bed(char *s, int32_t *st_, int32_t *en_)
@@ -64,8 +65,8 @@ int main(int argc, char *argv[])
 	if (argc - optind < 2) {
 		printf("Usage: bedcov [options] <loaded.bed> <streamed.bed>\n");
 		printf("Options:\n");
-		printf("  -c       only count; no breadth of depth\n");
-		printf("  -C       containment only\n");
+		//printf("  -c       only count; no breadth of depth\n");
+		//printf("  -C       containment only\n");
 		return 0;
 	}
 
@@ -82,6 +83,7 @@ int main(int argc, char *argv[])
 		int64_t j, cnt = 0, cov = 0, cov_st = 0, cov_en = 0;
 		ctg = parse_bed(str.s, &st1, &en1);
 		if (ctg == 0) continue;
+		/*
 		if (contained)
 			n_b = cr_contain(cr, ctg, st1, en1, &b, &m_b);
 		else
@@ -101,6 +103,10 @@ int main(int argc, char *argv[])
 			cov += cov_en - cov_st;
 			printf("%s\t%d\t%d\t%ld\t%ld\n", ctg, st1, en1, (long)cnt, (long)cov);
 		} else printf("%s\t%d\t%d\t%ld\n", ctg, st1, en1, (long)n_b);
+		*/
+		n_b = cr_overlap(cr, ctg, st1, en1, &b, &m_b);
+		if (n_b>0)
+			printf("%s\t%d\t%d\t%ld\n", ctg, st1, en1, (long)n_b);
 	}
 	free(b);
 	free(str.s);

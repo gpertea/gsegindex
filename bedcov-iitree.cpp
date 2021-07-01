@@ -91,11 +91,12 @@ int main(int argc, char *argv[])
 		if (ctg == 0) continue;
 		khint_t k = kh_get(idx, h, ctg);
 		if (k == kh_end(h)) {
-			printf("%s\t%d\t%d\t0\t0\n", ctg, st1, en1);
+			//printf("%s\t%d\t%d\t0\t0\n", ctg, st1, en1);
 			continue;
 		}
 		ITree *tree = kh_val(h, k);
 		tree->overlap(st1, en1, a);
+		/*
 		int32_t cnt = 0, cov = 0, cov_st = 0, cov_en = 0;
 		for (size_t j = 0; j < a.size(); ++j) {
 			int32_t st0 = tree->start(a[j]), en0 = tree->end(a[j]);
@@ -109,6 +110,9 @@ int main(int argc, char *argv[])
 		}
 		cov += cov_en - cov_st;
 		printf("%s\t%d\t%d\t%d\t%d\n", ctg, st1, en1, cnt, cov);
+		*/
+		if (a.size()>0)
+		  printf("%s\t%d\t%d\t%d\n", ctg, st1, en1, a.size());
 	}
 	free(str.s);
 	ks_destroy(ks);

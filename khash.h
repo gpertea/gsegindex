@@ -172,9 +172,9 @@ typedef khint_t khiter_t;
 
 #define __ac_fsize(m) ((m) < 16? 1 : (m)>>4)
 
-#ifndef kroundup32
+//#ifndef kroundup32
 #define kroundup32(x) (--(x), (x)|=(x)>>1, (x)|=(x)>>2, (x)|=(x)>>4, (x)|=(x)>>8, (x)|=(x)>>16, ++(x))
-#endif
+//#endif
 
 #ifndef kcalloc
 #define kcalloc(N,Z) calloc(N,Z)
