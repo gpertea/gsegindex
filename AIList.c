@@ -52,9 +52,9 @@ uint32_t bSearch(gdata_t* As, uint32_t idxS, uint32_t idxE, uint32_t qe)
     return tE; 
 }
 
-TAIList *ailist_init(void)
+ailist_t *ailist_init(void)
 {
-	TAIList *ail = malloc(1*sizeof(TAIList));
+	ailist_t *ail = malloc(1*sizeof(ailist_t));
 	ail->hc = kh_init(str);
 	ail->nctg = 0;
 	ail->mctg = 32;
@@ -62,7 +62,7 @@ TAIList *ailist_init(void)
 	return ail;
 }
 
-void ailist_destroy(TAIList *ail)
+void ailist_destroy(ailist_t *ail)
 {
 	int32_t i;
 	if (ail == 0) return;
@@ -76,7 +76,7 @@ void ailist_destroy(TAIList *ail)
 	free(ail);
 }
 
-void ailist_add(TAIList *ail, const char *chr, uint32_t s, uint32_t e, int32_t v)
+void ailist_add(ailist_t *ail, const char *chr, uint32_t s, uint32_t e, int32_t v)
 {
 	if(s > e)return;
 	int absent;
@@ -104,10 +104,10 @@ void ailist_add(TAIList *ail, const char *chr, uint32_t s, uint32_t e, int32_t v
 }
 
 //-------------------------------------------------------------------------------
-TAIList* readBED(const char* fn)
+ailist_t* readBED(const char* fn)
 {   //faster than strtok()
 	gzFile fp;
-	TAIList *ail;
+	ailist_t *ail;
 	kstream_t *ks;
 	kstring_t str = {0,0,0};
 	int32_t k = 0;
@@ -127,7 +127,7 @@ TAIList* readBED(const char* fn)
 	return ail;
 } 
 
-void ailist_construct(TAIList *ail, int cLen)
+void ailist_construct(ailist_t *ail, int cLen)
 {   
     int cLen1=cLen/2, j1, nr, minL = MAX(64, cLen);     
     cLen += cLen1;      
@@ -204,7 +204,7 @@ void ailist_construct(TAIList *ail, int cLen)
 	}	
 }
 
-void ailist_construct0(TAIList *ail, int cLen)
+void ailist_construct0(ailist_t *ail, int cLen)
 {   //New continueous memory?   
     int cLen1=cLen/2, j1, nr, minL = MAX(64, cLen);     
     cLen += cLen1;      
@@ -270,7 +270,7 @@ void ailist_construct0(TAIList *ail, int cLen)
 	}
 }
 
-int32_t get_ctg(const TAIList *ail, const char *chr)
+int32_t get_ctg(const ailist_t *ail, const char *chr)
 {
 	khint_t k;
 	strhash_t *h = (strhash_t*)ail->hc;
@@ -278,7 +278,7 @@ int32_t get_ctg(const TAIList *ail, const char *chr)
 	return k == kh_end(h)? -1 : kh_val(h, k);
 }
 
-uint32_t ailist_query(TAIList *ail, char *chr, uint32_t qs, uint32_t qe, uint32_t *mr, uint32_t **ir)
+uint32_t ailist_query(ailist_t *ail, char *chr, uint32_t qs, uint32_t qe, uint32_t *mr, uint32_t **ir)
 {   
     uint32_t nr = 0, m = *mr, *r = *ir;
     int32_t gid = get_ctg(ail, chr);

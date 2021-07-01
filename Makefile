@@ -21,18 +21,21 @@ ifdef WINDOWS
 #else
 endif
 
-PROG=bedcov bedcov-bfs ailist
+PROG=bedcov bedcov-cpp bedcov-bfs ailist
 
 all:$(PROG)
 
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-bedcov: bedcov-iitree.o $(GCLIB)/GBase.o
+bedcov: bedcov.o cgranges.o $(GCLIB)/GBase.o
+		${LINKER} ${LDFLAGS} -o $@ ${filter-out %.a %.so, $^} ${LIBS}
+bedcov-cpp: bedcov-iitree.o $(GCLIB)/GBase.o
 		${LINKER} ${LDFLAGS} -o $@ ${filter-out %.a %.so, $^} ${LIBS}
 bedcov-bfs: bedcov-iitree-bfs.o $(GCLIB)/GBase.o
 		${LINKER} ${LDFLAGS} -o $@ ${filter-out %.a %.so, $^} ${LIBS}
 
+#ailist: AIList.co ailist_main.co $(GCLIB)/GBase.o
 ailist: AIList.o ailist_main.o $(GCLIB)/GBase.o
 		${LINKER} ${LDFLAGS} -o $@ ${filter-out %.a %.so, $^} ${LIBS}
 
