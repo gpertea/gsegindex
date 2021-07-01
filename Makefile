@@ -10,7 +10,6 @@ DFLAGS := $(if $(LDFLAGS),$(LDFLAGS),-g)
 #LIB = AIList.o ailist_main.o
 #OBJS = $(addprefix $(OBJ)/, $(LIB))
 
-
 ifneq (,$(findstring mingw,$(shell ${CXX} -dumpmachine)))
  WINDOWS=1
 endif
@@ -21,7 +20,7 @@ ifdef WINDOWS
 #else
 endif
 
-PROG=bedcov bedcov-cpp bedcov-bfs ailist
+PROG = gbedcov gailist bedcov bedcov-cpp ailist
 
 all:$(PROG)
 
@@ -35,15 +34,23 @@ bedcov-cpp: bedcov-iitree.o $(GCLIB)/GBase.o
 bedcov-bfs: bedcov-iitree-bfs.o $(GCLIB)/GBase.o
 		${LINKER} ${LDFLAGS} -o $@ ${filter-out %.a %.so, $^} ${LIBS}
 
+gbedcov: gbedcov.o iutil.o $(GCLIB)/GBase.o $(GCLIB)/GStr.o
+		${LINKER} ${LDFLAGS} -o $@ ${filter-out %.a %.so, $^} ${LIBS}
+
 #ailist: AIList.co ailist_main.co $(GCLIB)/GBase.o
 ailist: AIList.o ailist_main.o $(GCLIB)/GBase.o
 		${LINKER} ${LDFLAGS} -o $@ ${filter-out %.a %.so, $^} ${LIBS}
 
+gailist: GAIList.o iutil.o gailist_main.o $(GCLIB)/GBase.o $(GCLIB)/GStr.o
+		${LINKER} ${LDFLAGS} -o $@ ${filter-out %.a %.so, $^} ${LIBS}
+
+gbedcov.o: iutil.h iutil.cpp gbedcov.cpp
+GAIList.o: iutil.h iutil.cpp GAIList.h 
+ailist_main.o: iutil.h iutil.cpp GAIList.h GAIList.cpp
 
 bedcov-iitree-bfs.o: bedcov-iitree-bfs.cpp IITreeBFS.h
 bedcov-iitree.o: bedcov-iitree.cpp IITree.h
 AIList.o: AIList.cpp AIList.h
-
 
 clean:
 		rm -fr $(PROG) *.exe *.o a.out *.dSYM $(GCLIB)/GBase.o
