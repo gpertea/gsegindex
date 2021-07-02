@@ -7,13 +7,23 @@
 
 #ifndef IUTIL_H_
 #define IUTIL_H_
+#include <zlib.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+#include <time.h>
+#include <ctype.h>
+#include <math.h>
+#include <stdlib.h>
+#include <assert.h>
 
 #include "khash.h"
 #include "kseq.h"
+#include "GBase.h"
+#include "GResUsage.h"
 
 //Parse a line of BED file
 char *parse_bed(char *s, int32_t *st_, int32_t *en_);
-
 
 
 #endif /* IUTIL_H_ */

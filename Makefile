@@ -20,7 +20,8 @@ ifdef WINDOWS
 #else
 endif
 
-PROG = gbedcov gailist bedcov bedcov-cpp ailist
+PROG = gbedcov gailist
+# ailist bedcov bedcov-cpp
 
 all:$(PROG)
 
@@ -34,14 +35,14 @@ bedcov-cpp: bedcov-iitree.o $(GCLIB)/GBase.o
 bedcov-bfs: bedcov-iitree-bfs.o $(GCLIB)/GBase.o
 		${LINKER} ${LDFLAGS} -o $@ ${filter-out %.a %.so, $^} ${LIBS}
 
-gbedcov: gbedcov.o iutil.o $(GCLIB)/GBase.o $(GCLIB)/GStr.o
+gbedcov: gbedcov.o iutil.o $(GCLIB)/GBase.o $(GCLIB)/GResUsage.o $(GCLIB)/GStr.o
 		${LINKER} ${LDFLAGS} -o $@ ${filter-out %.a %.so, $^} ${LIBS}
 
 #ailist: AIList.co ailist_main.co $(GCLIB)/GBase.o
 ailist: AIList.o ailist_main.o $(GCLIB)/GBase.o
 		${LINKER} ${LDFLAGS} -o $@ ${filter-out %.a %.so, $^} ${LIBS}
 
-gailist: GAIList.o iutil.o gailist_main.o $(GCLIB)/GBase.o $(GCLIB)/GStr.o
+gailist: GAIList.o iutil.o gailist_main.o $(GCLIB)/GBase.o $(GCLIB)/GResUsage.o $(GCLIB)/GStr.o
 		${LINKER} ${LDFLAGS} -o $@ ${filter-out %.a %.so, $^} ${LIBS}
 
 gbedcov.o: iutil.h iutil.cpp gbedcov.cpp

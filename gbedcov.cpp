@@ -1,8 +1,4 @@
-#include <zlib.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
+
 #include "IITree.h"
 #include "iutil.h"
 KSTREAM_INIT(gzFile, gzread, 0x10000)
@@ -56,9 +52,13 @@ int main(int argc, char *argv[])
 		printf("Usage: bedcov <loaded.bed> <streamed.bed>\n");
 		return 0;
 	}
-
+	GResUsage ru;
+  ru.start();
 	khash_t(idx) *h = read_bed(argv[1]);
-
+  ru.stop();
+  double mtime=ru.elapsed()/1000000; // in seconds
+  double memused=ru.memoryUsed();
+  GMessage("%s loaded (in %.2f sec, using %.2f KB)\n", argv[1], mtime, memused);
 	fp = gzopen(argv[2], "r");
 	assert(fp);
 	ks = ks_init(fp);

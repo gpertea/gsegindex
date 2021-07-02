@@ -12,6 +12,9 @@
 #define BUILD_VERSION "0"
 #define VERSION MAJOR_VERSION "." MINOR_VERSION "." REVISION_VERSION
 
+
+#include "iutil.h"
+
 int ailist_help(int argc, char **argv, int exit_code);
 
 int main(int argc, char **argv)
@@ -30,19 +33,25 @@ int main(int argc, char **argv)
     //start = clock();
 
     //1. Read interval data
-    ailist_t *ail =  readBED(argv[1]);
-    //end1 = clock();
+  GResUsage ru;
+  ru.start();
+  ailist_t *ail =  readBED(argv[1]);
+   //end1 = clock();
     //printf("loading time: %f\n", ((double)(end1-start))/CLOCKS_PER_SEC);
-
     //2. Construct ailist
-    ailist_construct(ail, cLen);
-    if(pmode==2){
-		for(int i=0;i<ail->nctg;i++){
-			ctg_t *p = &ail->ctg[i];
-			printf("%s\tnr= %lld, nc=%i\n", p->name, (long long)p->nr, p->nc);
-			for(int j=0;j<p->nc;j++)
-				printf("	%i\t%i  \n", p->idxC[j], p->lenC[j]);
-		}
+   ailist_construct(ail, cLen);
+   ru.stop();
+   double mtime=ru.elapsed()/1000000; // in seconds
+   double memused=ru.memoryUsed();
+   GMessage("%s loaded (in %.2f sec, using %.2f KB)\n", argv[1], mtime, memused);
+
+   if(pmode==2){
+  	  for(int i=0;i<ail->nctg;i++){
+			 AICtgData *p = &ail->ctg[i];
+			 printf("%s\tnr= %lld, nc=%i\n", p->ctg, (long long)p->nr, p->nc);
+			 for(int j=0;j<p->nc;j++)
+				  printf(" %i\t%i  \n", p->idxC[j], p->lenC[j]);
+		  }
     }
     //end2 = clock();
     //printf("constru time: %f\n", ((double)(end2-end1))/CLOCKS_PER_SEC);
@@ -50,7 +59,8 @@ int main(int argc, char **argv)
     //3. Search
 	int64_t nol = 0;
 	uint32_t nhits=0, mr=1000000;
-	uint32_t *hits=malloc(mr*sizeof(uint32_t));
+	uint32_t *hits=NULL;
+	GMALLOC(hits, mr*sizeof(uint32_t));
 
 	kstream_t *ks;
 	kstring_t str = {0,0,0};
@@ -71,8 +81,8 @@ int main(int argc, char **argv)
     //printf("Total %lld\n", (long long)nol);
     //printf("query time: %f\n", ((double)(end3-end2))/CLOCKS_PER_SEC);
 
-  	free(str.s);
-	free(hits);
+  GFREE(str.s);
+	GFREE(hits);
 	gzclose(fp);
 	ks_destroy(ks);
 	ailist_destroy(ail);

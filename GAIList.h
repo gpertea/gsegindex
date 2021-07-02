@@ -4,14 +4,6 @@
 //-------------------------------------------------------------------------------------
 #ifndef __GAILIST_H__
 #define __GAILIST_H__
-#include <stdint.h>
-#include <stdio.h>
-#include <string.h>
-#include <time.h>
-#include <ctype.h>
-#include <math.h>
-#include <zlib.h>
-#include <assert.h>
 //-------------------------------------------------------------------------------------
 #include "iutil.h"
 
@@ -19,22 +11,23 @@
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define MAXC 10							//max number of components
 //-------------------------------------------------------------------------------------
-typedef struct {
-    uint32_t start;      				//region start: 0-based
-    uint32_t end;    					//region end: not inclusive
-    int32_t value;
-} gdata_t;
+struct AIData {
+    uint32_t start;   //region start: 0-based
+    uint32_t end;     //region end: not inclusive
+    uint32_t didx; // this could be an index+1 into a storage array for data
+                  //      associated with each interval (e.g. GFF records)
+};
 
-typedef struct{
-	char *name;    						//name of the contig
-	int64_t nr, mr;						//number of regions
-	gdata_t *glist;						//regions data
+struct AICtgData{
+	char *ctg;    						//name of the contig
+	uint32_t nr, maxr;						//number of regions
+	AIData *glist;						//regions data
 	int nc, lenC[MAXC], idxC[MAXC];		//components
 	uint32_t *maxE;						//augmentation
-} ctg_t;
+};
 
 typedef struct {
-	ctg_t *ctg;        					// list of contigs (of size _n_ctg_)
+	AICtgData *ctg;        					// list of contigs (of size _n_ctg_)
 	int32_t nctg, mctg; 				// number and max number of contigs
 	void *hc;             				// dict for converting contig names to int
 } ailist_t;
@@ -47,18 +40,18 @@ ailist_t *ailist_init(void);
 //read .BED file
 ailist_t* readBED(const char* fn);
 
-//Add a gdata_t interval
+//Add a AIData interval
 void ailist_add(ailist_t *ail, const char *chr, uint32_t s, uint32_t e, int32_t v);
 
 //Construct ailist: decomposition and augmentation
 void ailist_construct(ailist_t *ail, int cLen);
-void ailist_construct0(ailist_t *ail, int cLen);
+//void ailist_construct0(ailist_t *ail, int cLen);
 
 //Get chr index
 int32_t get_ctg(const ailist_t *ail, const char *chr);
 
 //Binary search
-uint32_t bSearch(gdata_t* As, uint32_t idxS, uint32_t idxE, uint32_t qe);
+uint32_t bSearch(AIData* As, uint32_t idxS, uint32_t idxE, uint32_t qe);
 
 //Query ailist intervals
 uint32_t ailist_query(ailist_t *ail, char *chr, uint32_t qs, uint32_t qe, uint32_t *mr, uint32_t **ir);
