@@ -32,10 +32,10 @@ uint32_t bSearch(AIData* As, uint32_t idxS, uint32_t idxE, uint32_t qe) {   //fi
     return tE;
 }
 
-ailist_t *ailist_init(void)
+AIList *ailist_init(void)
 {
-	ailist_t *ail = NULL;
-	GMALLOC(ail,  1 * sizeof(ailist_t));
+	AIList *ail = NULL;
+	GMALLOC(ail,  1 * sizeof(AIList));
 	ail->hc = kh_init(str);
 	ail->nctg = 0;
 	ail->mctg = 32;
@@ -43,9 +43,9 @@ ailist_t *ailist_init(void)
 	return ail;
 }
 
-void ailist_destroy(ailist_t *ail)
+void ailist_destroy(AIList *ail)
 {
-	int32_t i;
+	uint32_t i;
 	if (ail == 0) return;
 	for (i = 0; i < ail->nctg; ++i){
 		free(ail->ctg[i].ctg);
@@ -57,7 +57,7 @@ void ailist_destroy(ailist_t *ail)
 	free(ail);
 }
 
-void ailist_add(ailist_t *ail, const char *chr, uint32_t s, uint32_t e, int32_t v)
+void ailist_add(AIList *ail, const char *chr, uint32_t s, uint32_t e, int32_t v)
 {
 	if(s > e)return;
 	int absent;
@@ -85,10 +85,10 @@ void ailist_add(ailist_t *ail, const char *chr, uint32_t s, uint32_t e, int32_t 
 }
 
 //-------------------------------------------------------------------------------
-ailist_t* readBED(const char* fn)
+AIList* readBED(const char* fn)
 {   //faster than strtok()
 	gzFile fp;
-	ailist_t *ail;
+	AIList *ail;
 	kstream_t *ks;
 	kstring_t str = {0,0,0};
 	int32_t k = 0;
@@ -108,20 +108,22 @@ ailist_t* readBED(const char* fn)
 	return ail;
 }
 
-void ailist_construct(ailist_t *ail, int cLen) {
+void ailist_construct(AIList *ail, int cLen) {
 	int cLen1=cLen/2;
-	int minL = MAX(64, cLen);
+	uint32_t minL = MAX(64, cLen);
 	uint32_t nr;
 	cLen += cLen1;
-	int lenT, len, iter, i, j, k, k0, t;
-	for(i=0; i<ail->nctg; i++){
+	uint32_t lenT, len, iter, j, i, t, k, k0;
+	for(i=0; i<ail->nctg; i++){ //for each chromosome
 		//1. Decomposition
-		AICtgData *p    = &ail->ctg[i];
-		AIData *L1 = p->glist;							//L1: to be rebuilt
-		nr = p->nr;
+		AICtgData *ctgdta    = &ail->ctg[i];
+		AIData *L1 = ctgdta->glist;							//L1: to be rebuilt
+		nr = ctgdta->nr;
 		radix_sort_intv(L1, L1+nr);
-		if(nr<=minL){
-			p->nc = 1, p->lenC[0] = nr, p->idxC[0] = 0;
+		if (nr<=minL) {
+			ctgdta->nc = 1;
+			ctgdta->lenC[0] = nr;
+			ctgdta->idxC[0] = 0;
 		}
 		else{
 			AIData *L0 = malloc(nr*sizeof(AIData)); 	//L0: serve as input list
@@ -153,106 +155,41 @@ void ailist_construct(ailist_t *ail, int cLen) {
 						memcpy(&L1[k++], &L0[t], sizeof(AIData));
 				}
 				memcpy(&L1[k], &L0[lenT-cLen], cLen*sizeof(AIData));
-				k += cLen, lenT = len;
-				p->idxC[iter] = k0;
-				p->lenC[iter] = k-k0;
+				k += cLen;
+				lenT = len;
+				ctgdta->idxC[iter] = k0;
+				ctgdta->lenC[iter] = k-k0;
 				k0 = k, iter++;
-				if(lenT<=minL || iter==MAXC-2){			//exit: add L2 to the end
+				if (lenT<=minL || iter==MAXC-2){			//exit: add L2 to the end
 					if(lenT>0){
 						memcpy(&L1[k], L2, lenT*sizeof(AIData));
-						p->idxC[iter] = k;
-						p->lenC[iter] = lenT;
+						ctgdta->idxC[iter] = k;
+						ctgdta->lenC[iter] = lenT;
 						iter++;
 						lenT = 0;						//exit!
 					}
-					p->nc = iter;
+					ctgdta->nc = iter;
 				}
 				else memcpy(L0, L2, lenT*sizeof(AIData));
 			}
 			free(L2),free(L0), free(D0), free(di);
 		}
 		//2. Augmentation
-		p->maxE = malloc(nr*sizeof(uint32_t));
-		for(j=0; j<p->nc; j++){
-			k0 = p->idxC[j];
-			k = k0 + p->lenC[j];
+		GMALLOC(ctgdta->maxE,  nr*sizeof(uint32_t));
+		for(j=0; j<ctgdta->nc; j++){
+			k0 = ctgdta->idxC[j];
+			k = k0 + ctgdta->lenC[j];
 			uint32_t tt = L1[k0].end;
-			p->maxE[k0]=tt;
+			ctgdta->maxE[k0]=tt;
 			for(t=k0+1; t<k; t++){
 				if(L1[t].end > tt) tt = L1[t].end;
-				p->maxE[t] = tt;
+				ctgdta->maxE[t] = tt;
 			}
 		}
 	}
 }
-/*
-void ailist_construct0(ailist_t *ail, int cLen)
-{   //New continueous memory?
-    int cLen1=cLen/2, j1, nr, minL = MAX(64, cLen);
-    cLen += cLen1;
-    int lenT, len, iter, i, j, k, k0, t;
-	for(i=0; i<ail->nctg; i++){
-		//1. Decomposition
-		AICtgData *p    = &ail->ctg[i];
-		AIData *L1 = p->glist;							//L1: to be rebuilt
-		nr 			= p->nr;
-		radix_sort_intv(L1, L1+nr);
-        if(nr<=minL){
-            p->nc = 1, p->lenC[0] = nr, p->idxC[0] = 0;
-        }
-        else{
-        	AIData *L0 = malloc(nr*sizeof(AIData)); 	//L0: serve as input list
-            AIData *L2 = malloc(nr*sizeof(AIData));   //L2: extracted list
-            memcpy(L0, L1, nr*sizeof(AIData));
-            iter = 0;	k = 0;	k0 = 0;
-            lenT = nr;
-            while(iter<MAXC && lenT>minL){
-                len = 0;
-                for(t=0; t<lenT-cLen; t++){
-                    uint32_t tt = L0[t].end;
-                    j=1;    j1=1;
-                    while(j<cLen && j1<cLen1){
-                        if(L0[j+t].end>=tt) j1++;
-                        j++;
-                    }
-                    if(j1<cLen1) memcpy(&L2[len++], &L0[t], sizeof(AIData));
-                    else memcpy(&L1[k++], &L0[t], sizeof(AIData));
-                }
-                memcpy(&L1[k], &L0[lenT-cLen], cLen*sizeof(AIData));
-                k += cLen, lenT = len;
-                p->idxC[iter] = k0;
-                p->lenC[iter] = k-k0;
-                k0 = k, iter++;
-                if(lenT<=minL || iter==MAXC-2){			//exit: add L2 to the end
-                    if(lenT>0){
-                        memcpy(&L1[k], L2, lenT*sizeof(AIData));
-                        p->idxC[iter] = k;
-                        p->lenC[iter] = lenT;
-                        iter++;
-                        lenT = 0;	//exit!
-                    }
-                   	p->nc = iter;
-                }
-                else memcpy(L0, L2, lenT*sizeof(AIData));
-            }
-            free(L2),free(L0);
-        }
-        //2. Augmentation
-        p->maxE = malloc(nr*sizeof(uint32_t));
-        for(j=0; j<p->nc; j++){
-            k0 = p->idxC[j];
-            k = k0 + p->lenC[j];
-            uint32_t tt = L1[k0].end;
-            p->maxE[k0]=tt;
-            for(t=k0+1; t<k; t++){
-                if(L1[t].end > tt) tt = L1[t].end;
-                p->maxE[t] = tt;
-            }
-        }
-	}
-}
-*/
-int32_t get_ctg(const ailist_t *ail, const char *chr)
+
+int32_t get_ctg(const AIList *ail, const char *chr)
 {
 	khint_t k;
 	strhash_t *h = (strhash_t*)ail->hc;
@@ -260,13 +197,14 @@ int32_t get_ctg(const ailist_t *ail, const char *chr)
 	return k == kh_end(h)? -1 : kh_val(h, k);
 }
 
-uint32_t ailist_query(ailist_t *ail, char *chr, uint32_t qs, uint32_t qe, uint32_t *mr, uint32_t **ir)
+uint32_t ailist_query(AIList *ail, char *chr, uint32_t qs, uint32_t qe, uint32_t *mr, uint32_t **ir)
 {
     uint32_t nr = 0, m = *mr, *r = *ir;
     int32_t gid = get_ctg(ail, chr);
-    if(gid>=ail->nctg || gid<0)return 0;
+    if (gid<0 || (uint32_t)gid >= ail->nctg )
+    	return 0; //no such contig
     AICtgData *p = &ail->ctg[gid];
-    for(int k=0; k<p->nc; k++){					//search each component
+    for(uint k=0; k<p->nc; k++){					//search each component
         int32_t cs = p->idxC[k];
         int32_t ce = cs + p->lenC[k];
         int32_t t;
@@ -287,7 +225,7 @@ uint32_t ailist_query(ailist_t *ail, char *chr, uint32_t qs, uint32_t qe, uint32
         else{
         	if(nr+ce-cs>=m){
         		m = nr+ce-cs + 1024;
-        		r = realloc(r, m*sizeof(uint32_t));
+        		GREALLOC(r, m*sizeof(uint32_t));
         	}
             for(t=cs; t<ce; t++)
                 if(p->glist[t].start<qe && p->glist[t].end>qs)

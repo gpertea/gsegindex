@@ -35,7 +35,7 @@ int main(int argc, char **argv)
     //1. Read interval data
   GResUsage ru;
   ru.start();
-  ailist_t *ail =  readBED(argv[1]);
+  AIList *ail =  readBED(argv[1]);
    //end1 = clock();
     //printf("loading time: %f\n", ((double)(end1-start))/CLOCKS_PER_SEC);
     //2. Construct ailist
