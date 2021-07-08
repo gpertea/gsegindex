@@ -36,7 +36,7 @@ int main(int argc, char **argv)
     //1. Read interval data
   GResUsage ru;
   ru.start();
-  AIList *ail =  readBED(argv[1]);
+  GAIList *ail =  readBED(argv[1]);
    //end1 = clock();
     //printf("loading time: %f\n", ((double)(end1-start))/CLOCKS_PER_SEC);
     //2. Construct ailist
@@ -48,7 +48,7 @@ int main(int argc, char **argv)
 
    if(pmode==2){
   	  for(uint i=0;i<ail->nctg;i++){
-			 AICtgData *p = &ail->ctg[i];
+			 AICtgData *p = &ail->ctglst[i];
 			 printf("%s\tnr= %lld, nc=%i\n", p->ctg, (long long)p->nr, p->nc);
 			 for(uint j=0;j<p->nc;j++)
 				  printf(" %i\t%i  \n", p->idxC[j], p->lenC[j]);

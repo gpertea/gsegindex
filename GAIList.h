@@ -6,6 +6,8 @@
 #define __GAILIST_H__
 //-------------------------------------------------------------------------------------
 #include "iutil.h"
+#include "GVec.hh"
+//#include "GHashMap.hh"
 
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
@@ -19,45 +21,74 @@ struct AIData {
 };
 
 struct AICtgData{
-	char *ctg;            //name of the contig
-	uint32_t nr, maxr;    //number of regions
-	AIData *glist;       //regions data
-	uint32_t nc, lenC[MAXC], idxC[MAXC]; //components
-	uint32_t *maxE;      //augmentation
+	char *ctg=NULL;            //name of the contig
+	//uint32_t nr=0, maxr=64;    //number of regions
+	//AIData *glist=NULL;        //regions data
+	GDynArray<AIData> reglist;
+	uint32_t nc=0;               //number of components
+	uint lenC[MAXC], idxC[MAXC]; //components
+	uint32_t *maxE=NULL;      //augmentation
+	AICtgData(const char* chr=NULL):reglist(64) {
+		if (chr) {
+			ctg=strdup(chr);
+			//GMALLOC(glist, maxr * sizeof(AIData));
+		}
+	}
+	~AICtgData() {
+		//reglist clears itself
+		free(ctg);
+		free(maxE);
+	}
 };
-
-struct AIList{
-	AICtgData *ctg;        // list of contigs (of size _n_ctg_)
+/*
+struct GAIList{
+	AICtgData *ctglst;        // list of contigs (of size _n_ctg_)
 	uint32_t nctg, mctg;   // number and max number of contigs
 	void *hc;              // dict for converting contig names to int
+};
+*/
+struct GAIList {
+	GPVec<AICtgData> ctglst;        // list of contigs (of size _n_ctg_)
+	//uint32_t nctg, mctg;   // number and max number of contigs
+	void *hc=NULL;              // hashmap for converting contig names to int
+	GAIList(uint max=32):ctglst(max, true) { hc = kh_init(str); } //init
+	void loadBED(const char* fn); //readBED
+	void add(const char *chr, uint32_t s, uint32_t e, uint32_t payload); //ailist_add
+	void build(int cLen); //ailist_construct
+	int32_t get_ctg(const char* chr);
+	uint32_t query(char *chr, uint32_t qs, uint32_t qe, uint32_t *mr, uint32_t **ir); //ailist_query
+    ~GAIList() { //ailist_destroy
+    	//ctglst is going to clear itself
+    	kh_destroy(str, (strhash_t*)hc);
+    }
 };
 
 //-------------------------------------------------------------------------------------
 
 //Initialize AIList
-AIList *ailist_init(void);
+GAIList *ailist_init(void);
 
 //read .BED file
-AIList* readBED(const char* fn);
+GAIList* readBED(const char* fn);
 
 //Add a AIData interval
-void ailist_add(AIList *ail, const char *chr, uint32_t s, uint32_t e, int32_t v);
+void ailist_add(GAIList *ail, const char *chr, uint32_t s, uint32_t e, int32_t v);
 
 //Construct ailist: decomposition and augmentation
-void ailist_construct(AIList *ail, int cLen);
+void ailist_construct(GAIList *ail, int cLen);
 //void ailist_construct0(AIList *ail, int cLen);
 
 //Get chr index
-int32_t get_ctg(const AIList *ail, const char *chr);
+int32_t get_ctg(const GAIList *ail, const char *chr);
 
 //Binary search
 uint32_t bSearch(AIData* As, uint32_t idxS, uint32_t idxE, uint32_t qe);
 
 //Query ailist intervals
-uint32_t ailist_query(AIList *ail, char *chr, uint32_t qs, uint32_t qe, uint32_t *mr, uint32_t **ir);
+uint32_t ailist_query(GAIList *ail, char *chr, uint32_t qs, uint32_t qe, uint32_t *mr, uint32_t **ir);
 
 //Free ailist data
-void ailist_destroy(AIList *ail);
+void ailist_destroy(GAIList *ail);
 //-------------------------------------------------------------------------------------
 //The following section taken from Dr Heng Li's cgranges
 // (https://github.com/lh3/cgranges)
