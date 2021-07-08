@@ -62,7 +62,7 @@ void ailist_destroy(AIList *ail);
 //The following section taken from Dr Heng Li's cgranges
 // (https://github.com/lh3/cgranges)
 
-KSTREAM_INIT(gzFile, gzread, 0x10000)
+//KSTREAM_INIT(gzFile, gzread, 0x10000)
 /**************
  * Radix sort *
  **************/

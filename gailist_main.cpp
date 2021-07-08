@@ -14,6 +14,7 @@
 
 
 #include "iutil.h"
+KSTREAM_INIT(gzFile, gzread, 0x10000)
 
 int ailist_help(int argc, char **argv, int exit_code);
 
@@ -46,10 +47,10 @@ int main(int argc, char **argv)
    GMessage("%s loaded (in %.2f sec, using %.2f KB)\n", argv[1], mtime, memused);
 
    if(pmode==2){
-  	  for(int i=0;i<ail->nctg;i++){
+  	  for(uint i=0;i<ail->nctg;i++){
 			 AICtgData *p = &ail->ctg[i];
 			 printf("%s\tnr= %lld, nc=%i\n", p->ctg, (long long)p->nr, p->nc);
-			 for(int j=0;j<p->nc;j++)
+			 for(uint j=0;j<p->nc;j++)
 				  printf(" %i\t%i  \n", p->idxC[j], p->lenC[j]);
 		  }
     }
@@ -81,7 +82,7 @@ int main(int argc, char **argv)
     //printf("Total %lld\n", (long long)nol);
     //printf("query time: %f\n", ((double)(end3-end2))/CLOCKS_PER_SEC);
 
-  GFREE(str.s);
+	GFREE(str.s);
 	GFREE(hits);
 	gzclose(fp);
 	ks_destroy(ks);

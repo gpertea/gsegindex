@@ -85,17 +85,24 @@ void ailist_add(AIList *ail, const char *chr, uint32_t s, uint32_t e, int32_t v)
 }
 
 //-------------------------------------------------------------------------------
+
+// TFunc for GFStream:
+//typedef int (*ft_gzread)(gzFile, voidp, unsigned int);
 AIList* readBED(const char* fn)
 {   //faster than strtok()
 	gzFile fp;
 	AIList *ail;
+	/*
 	kstream_t *ks;
 	kstring_t str = {0,0,0};
+	*/
 	int32_t k = 0;
+
+	ail = ailist_init();
+	/*
 	if ((fp = gzopen(fn, "r")) == 0)
 		return 0;
 	ks = ks_init(fp);
-	ail = ailist_init();
 	while (ks_getuntil(ks, KS_SEP_LINE, &str, 0) >= 0) {
 		char *ctg;
 		int32_t st, en;
@@ -104,6 +111,19 @@ AIList* readBED(const char* fn)
 	}
 	free(str.s);
 	ks_destroy(ks);
+	*/
+	if ((fp=gzopen(fn, "r"))) {
+		GFStream<gzFile, int (*)(gzFile, voidp, unsigned int)> fs(fp, gzread);
+		Gcstr line;
+		while (fs.getUntil(fs.SEP_LINE, line)>=0) {
+			if (line.len()==0) continue;
+			char *ctg;
+			int32_t st, en;
+			ctg = parse_bed(line(), &st, &en);
+			if (ctg) ailist_add(ail, ctg, st, en, k++);
+
+		}
+	}
 	gzclose(fp);
 	return ail;
 }
