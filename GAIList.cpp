@@ -123,7 +123,7 @@ AIList* readBED(const char* fn)
 			if (ctg) ailist_add(ail, ctg, st, en, k++);
 
 		}
-	}
+	} else GError("Error: failed to open file %s\n", fn);
 	gzclose(fp);
 	return ail;
 }

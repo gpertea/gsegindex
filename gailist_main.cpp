@@ -14,7 +14,7 @@
 
 
 #include "iutil.h"
-KSTREAM_INIT(gzFile, gzread, 0x10000)
+//KSTREAM_INIT(gzFile, gzread, 0x10000)
 
 int ailist_help(int argc, char **argv, int exit_code);
 
@@ -62,30 +62,24 @@ int main(int argc, char **argv)
 	uint32_t nhits=0, mr=1000000;
 	uint32_t *hits=NULL;
 	GMALLOC(hits, mr*sizeof(uint32_t));
-
-	kstream_t *ks;
-	kstring_t str = {0,0,0};
-	gzFile fp = gzopen(argv[2], "r");
-	assert(fp);
-	ks = ks_init(fp);
-	while (ks_getuntil(ks, KS_SEP_LINE, &str, 0) >= 0) {
-		int32_t st1, en1;
-		char *ctg;
-		ctg = parse_bed(str.s, &st1, &en1);
-		if (ctg == 0) continue;
-		nhits = ailist_query(ail, ctg, st1, en1, &mr, &hits);
-		if(pmode==0 && nhits>0)
-			printf("%s\t%d\t%d\t%d\n", ctg, st1, en1, nhits);
-		nol += nhits;
-	}
-	//end3 = clock();
-    //printf("Total %lld\n", (long long)nol);
-    //printf("query time: %f\n", ((double)(end3-end2))/CLOCKS_PER_SEC);
-
-	GFREE(str.s);
-	GFREE(hits);
+	gzFile fp;
+	if ((fp=gzopen(argv[2], "r"))) {
+		GFStream<gzFile, int (*)(gzFile, voidp, unsigned int)> fs(fp, gzread);
+		Gcstr line;
+		while (fs.getUntil(fs.SEP_LINE, line)>=0) {
+			if (line.len()==0) continue;
+			int32_t st1, en1;
+			char *ctg;
+			ctg = parse_bed(line(), &st1, &en1);
+			if (ctg == 0) continue;
+			nhits = ailist_query(ail, ctg, st1, en1, &mr, &hits);
+			if(pmode==0 && nhits>0)
+				printf("%s\t%d\t%d\t%d\n", ctg, st1, en1, nhits);
+			nol += nhits;
+		}
+	} else GError("Error: failed to open file %s\n", argv[2]);
 	gzclose(fp);
-	ks_destroy(ks);
+
 	ailist_destroy(ail);
     return 0;
 }
