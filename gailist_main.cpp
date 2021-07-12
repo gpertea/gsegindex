@@ -12,8 +12,6 @@
 #define BUILD_VERSION "0"
 #define VERSION MAJOR_VERSION "." MINOR_VERSION "." REVISION_VERSION
 
-//KSTREAM_INIT(gzFile, gzread, 0x10000)
-
 int ailist_help(int argc, char **argv, int exit_code);
 
 int main(int argc, char **argv)
@@ -34,14 +32,18 @@ int main(int argc, char **argv)
     //1. Read interval data
   GResUsage ru;
   //ru.start();
-  //GAIList gail;
-  AIList *ail =  greadBED(argv[1]);
-  //gail.loadBED(argv[1]);
+  
+  //AIList *ail =  greadBED(argv[1]);
+  GAIList gail;
+  gail.loadBED(argv[1]);
+
    //end1 = clock();
     //printf("loading time: %f\n", ((double)(end1-start))/CLOCKS_PER_SEC);
     //2. Construct ailist
-   gailist_construct(ail, cLen);
-   //gail.build(cLen);
+
+   //gailist_construct(ail, cLen);
+   gail.build(cLen);
+
    //ru.stop();
    //double mtime=ru.elapsed()/1000000; // in seconds
    //double memused=ru.memoryUsed();
@@ -67,8 +69,6 @@ int main(int argc, char **argv)
 	uint32_t nhits=0, mr=1000000; //mr: initial capacity of hits[]
 	uint32_t *hits=NULL;
 	GMALLOC(hits, mr*sizeof(uint32_t));
-
-	/*
 	//GDynArray<uint32_t> hits(1000000);
 	gzFile fp;
 	if ((fp=gzopen(argv[2], "r"))) {
@@ -80,8 +80,8 @@ int main(int argc, char **argv)
 			char *ctg;
 			ctg = parse_bed(line(), &st1, &en1);
 			if (ctg == 0) continue;
-			nhits = gailist_query(ail, ctg, st1, en1, &mr, &hits);
-			//nhits=gailist.query(ctg, st1, en1, &mr, &hits);
+			//nhits = gailist_query(ail, ctg, st1, en1, &mr, &hits);
+			nhits=gail.query(ctg, st1, en1, &mr, &hits);
 			//nhits=ail.query(ctg, st1, en1, hits);
 			if (pmode==0 && nhits>0)
 				printf("%s\t%d\t%d\t%d\n", ctg, st1, en1, nhits);
@@ -90,8 +90,10 @@ int main(int argc, char **argv)
 		}
 	} else GError("Error: failed to open file %s\n", argv[2]);
 	gzclose(fp);
-   */
+	//gailist_destroy(ail);
+	//gail.destroy();
 
+   /*
 	kstream_t *ks;
 	kstring_t str = {0,0,0};
 	gzFile fp = gzopen(argv[2], "r");
@@ -115,8 +117,8 @@ int main(int argc, char **argv)
 	free(hits);
 	gzclose(fp);
 	ks_destroy(ks);
+	*/
 
-	gailist_destroy(ail);
     return 0;
 }
 

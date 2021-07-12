@@ -8,8 +8,8 @@
 #include "iutil.h"
 #include "GVec.hh"
 #include "GHashMap.hh"
-//#include "GHashMap.hh"
-KSTREAM_INIT(gzFile, gzread, 0x10000)
+
+//KSTREAM_INIT(gzFile, gzread, 0x10000)
 
 //#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 //#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
@@ -77,7 +77,7 @@ struct AICtgData{
 struct GAIList{
 	//AICtgData *ctglst; // list of contigs (of size nctg)
 	ctg_t *ctg;            // list of contigs (of size nctg)
-	uint32_t nctg, mctg;   // count and max number of contigs
+	int32_t nctg, mctg;   // count and max number of contigs
 	//void *hc;              // dict for converting contig names to int
 	GHashMap<const char*, int32_t>* ctghash;
 
@@ -85,7 +85,7 @@ struct GAIList{
 	void loadBED(const char* fn);
 	void add(const char *chr, uint32_t s, uint32_t e, uint32_t payload);
 	void build(int cLen); //ailist_construct
-	void query(char *chr, uint32_t qs, uint32_t qe, uint32_t *mr, uint32_t **ir);
+	uint32_t query(char *chr, uint32_t qs, uint32_t qe, uint32_t *mr, uint32_t **ir);
 	int32_t getCtg(const char *chr);
 	void destroy();
 	GAIList() { init(); }
