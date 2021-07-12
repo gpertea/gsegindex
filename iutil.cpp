@@ -6,7 +6,7 @@
  */
 #include "iutil.h"
 
-char *parse_bed(char *s, int32_t *st_, int32_t *en_) {
+char *parse_bed(char *s, uint32_t *st_, uint32_t *en_) {
 	char *p, *q, *ctg = 0;
 	int32_t i, st = -1, en = -1;
 	for (i = 0, p = q = s;; ++q) {

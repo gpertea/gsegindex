@@ -12,6 +12,8 @@
 #define BUILD_VERSION "0"
 #define VERSION MAJOR_VERSION "." MINOR_VERSION "." REVISION_VERSION
 
+#include "iutil.h"
+
 int ailist_help(int argc, char **argv, int exit_code);
 
 int main(int argc, char **argv)
@@ -28,7 +30,7 @@ int main(int argc, char **argv)
 
    	//clock_t start, end1, end2, end3;
     //start = clock();
-
+	GResUsage ru;
     //1. Read interval data
     ailist_t *ail =  readBED(argv[1]);
     //end1 = clock();
@@ -36,6 +38,7 @@ int main(int argc, char **argv)
 
     //2. Construct ailist
     ailist_construct(ail, cLen);
+    /*
     if(pmode==2){
 		for(int i=0;i<ail->nctg;i++){
 			ctg_t *p = &ail->ctg[i];
@@ -44,6 +47,7 @@ int main(int argc, char **argv)
 				printf("	%i\t%i  \n", p->idxC[j], p->lenC[j]);
 		}
     }
+    */
     //end2 = clock();
     //printf("constru time: %f\n", ((double)(end2-end1))/CLOCKS_PER_SEC);
 

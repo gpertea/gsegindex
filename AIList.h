@@ -4,14 +4,8 @@
 //-------------------------------------------------------------------------------------
 #ifndef __AILIST_H__
 #define __AILIST_H__
-#include <stdint.h>
-#include <stdio.h>
-#include <string.h>
-#include <time.h>
-#include <ctype.h>
-#include <math.h>
-#include <zlib.h>
-#include <assert.h>
+#include "iutil.h"
+#include "GVec.hh"
 //-------------------------------------------------------------------------------------
 #include "khash.h"
 #include "kseq.h"
@@ -22,7 +16,7 @@
 typedef struct {
     uint32_t start;      				//region start: 0-based
     uint32_t end;    					//region end: not inclusive
-    int32_t value;
+    uint32_t value;
 } gdata_t;
 
 typedef struct{
@@ -30,18 +24,18 @@ typedef struct{
 	int64_t nr, mr;						//number of regions
 	gdata_t *glist;						//regions data
 	int nc, lenC[MAXC], idxC[MAXC];		//components
-	uint32_t *maxE;						//augmentation	
+	uint32_t *maxE;						//augmentation
 } ctg_t;
 
-typedef struct {	
+typedef struct {
 	ctg_t *ctg;        					// list of contigs (of size _n_ctg_)
 	int32_t nctg, mctg; 				// number and max number of contigs
-	void *hc;             				// dict for converting contig names to int    
+	void *hc;             				// dict for converting contig names to int
 } ailist_t;
 
 //-------------------------------------------------------------------------------------
 //Parse a line of BED file
-char *parse_bed(char *s, int32_t *st_, int32_t *en_);
+//char *parse_bed(char *s, int32_t *st_, int32_t *en_);
 
 //Initialize ailist_t
 ailist_t *ailist_init(void);
@@ -144,6 +138,6 @@ KSTREAM_INIT(gzFile, gzread, 0x10000)
 #define EXPAND(a, m) do { \
 		(m) = (m)? (m) + ((m)>>1) : 16; \
 		REALLOC((a), (m)); \
-	}while (0) 
+	}while (0)
 
 #endif

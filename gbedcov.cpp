@@ -19,7 +19,7 @@ khash_t(idx) *read_bed(const char *fn) {
 	h = kh_init(idx);
 	while (ks_getuntil(ks, KS_SEP_LINE, &str, 0) >= 0) {
 		char *ctg;
-		int32_t st, en;
+		uint32_t st, en;
 		ctg = parse_bed(str.s, &st, &en);
 		if (ctg) {
 			khint_t k;
@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
 	ks = ks_init(fp);
 	std::vector<size_t> a;
 	while (ks_getuntil(ks, KS_SEP_LINE, &str, 0) >= 0) {
-		int32_t st1, en1;
+		uint32_t st1, en1;
 		char *ctg;
 		ctg = parse_bed(str.s, &st1, &en1);
 		if (ctg == 0) continue;

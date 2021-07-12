@@ -7,11 +7,15 @@
 //-------------------------------------------------------------------------------------
 #include "iutil.h"
 #include "GVec.hh"
+#include "GHashMap.hh"
 //#include "GHashMap.hh"
+KSTREAM_INIT(gzFile, gzread, 0x10000)
 
-#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
-#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
+//#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
+//#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define MAXC 10							//max number of components
+
+
 //-------------------------------------------------------------------------------------
 struct AIData {
     uint32_t start;   //region start: 0-based
@@ -20,75 +24,115 @@ struct AIData {
                   //      associated with each interval (e.g. GFF records)
 };
 
+typedef struct{
+	char *name;    						//name of the contig
+	int64_t nr, mr;						//number of regions
+	AIData *glist;						//regions data
+	int nc, lenC[MAXC], idxC[MAXC];		//components
+	uint32_t *maxE;						//augmentation
+} ctg_t;
+
+struct AIList {
+	ctg_t *ctg;        					// list of contigs (of size _n_ctg_)
+	int32_t nctg, mctg; 				// number and max number of contigs
+	//void *hc;             				// dict for converting contig names to int
+	GHashMap<const char*, int32_t>* ctghash;
+};
+/*
 struct AICtgData{
 	char *ctg=NULL;            //name of the contig
-	//uint32_t nr=0, maxr=64;    //number of regions
-	//AIData *glist=NULL;        //regions data
-	GDynArray<AIData> reglist;
+	uint32_t nr=0, maxr=64;    //number of regions
+	AIData *reglist=NULL;        //regions data
+	//GDynArray<AIData> reglist;
 	uint32_t nc=0;               //number of components
 	uint lenC[MAXC], idxC[MAXC]; //components
 	uint32_t *maxE=NULL;      //augmentation
-	AICtgData(const char* chr=NULL):reglist(64) {
-		if (chr) {
-			ctg=strdup(chr);
-			//GMALLOC(glist, maxr * sizeof(AIData));
-		}
+	AICtgData(const char* chr=NULL) {
+		init(chr);
 	}
-	~AICtgData() {
-		//reglist clears itself
+	void init(const char* chr) {
+		nr=0;maxr=64;
+		nc=0;
+		ctg=strdup(chr);
+		GMALLOC(reglist, maxr * sizeof(AIData));
+	}
+	AIData& add() {
+		if (nr==maxr) {
+			maxr = maxr ? maxr + (maxr>>1) : 16;
+			GREALLOC(reglist, maxr * sizeof(AIData));
+		}
+		nr++;
+		return reglist[nr-1];
+	}
+
+	void destroy() {
 		free(ctg);
 		free(maxE);
+		free(reglist);
 	}
 };
-/*
-struct GAIList{
-	AICtgData *ctglst;        // list of contigs (of size _n_ctg_)
-	uint32_t nctg, mctg;   // number and max number of contigs
-	void *hc;              // dict for converting contig names to int
-};
+
 */
+
+struct GAIList{
+	//AICtgData *ctglst; // list of contigs (of size nctg)
+	ctg_t *ctg;            // list of contigs (of size nctg)
+	uint32_t nctg, mctg;   // count and max number of contigs
+	void *hc;              // dict for converting contig names to int
+	void init();
+	void loadBED(const char* fn);
+	void add(const char *chr, uint32_t s, uint32_t e, uint32_t payload);
+	void build(int cLen); //ailist_construct
+	void query(char *chr, uint32_t qs, uint32_t qe, uint32_t *mr, uint32_t **ir);
+	int32_t getCtg(const char *chr);
+	void destroy();
+	GAIList() { init(); }
+	~GAIList() { destroy(); }
+};
+/*
 struct GAIList {
-	GPVec<AICtgData> ctglst;        // list of contigs (of size _n_ctg_)
+	//GPVec<AICtgData> ctglst;        // list of contigs (of size _n_ctg_)
+	GDynArray<AICtgData> ctgs;
 	//uint32_t nctg, mctg;   // number and max number of contigs
 	void *hc=NULL;              // hashmap for converting contig names to int
-	GAIList(uint max=32):ctglst(max, true) { hc = kh_init(str); } //init
+	GAIList(uint max=32); //init
 	void loadBED(const char* fn); //readBED
 	void add(const char *chr, uint32_t s, uint32_t e, uint32_t payload); //ailist_add
 	void build(int cLen); //ailist_construct
-	int32_t get_ctg(const char* chr);
-	uint32_t query(char *chr, uint32_t qs, uint32_t qe, uint32_t *mr, uint32_t **ir); //ailist_query
-    ~GAIList() { //ailist_destroy
-    	//ctglst is going to clear itself
-    	kh_destroy(str, (strhash_t*)hc);
-    }
+	int32_t getCtg(const char* chr);
+	// returns an array of indexes mr
+	uint32_t query(char *chr, uint32_t qs, uint32_t qe, GDynArray<uint32_t>& hits); //ailist_query
+    ~GAIList();
 };
-
+*/
 //-------------------------------------------------------------------------------------
 
 //Initialize AIList
-GAIList *ailist_init(void);
+AIList *gailist_init(void);
 
 //read .BED file
-GAIList* readBED(const char* fn);
+AIList* greadBED(const char* fn);
 
 //Add a AIData interval
-void ailist_add(GAIList *ail, const char *chr, uint32_t s, uint32_t e, int32_t v);
+void gailist_add(AIList *ail, const char *chr, uint32_t s, uint32_t e, uint32_t v);
 
 //Construct ailist: decomposition and augmentation
-void ailist_construct(GAIList *ail, int cLen);
+void gailist_construct(AIList *ail, int cLen);
 //void ailist_construct0(AIList *ail, int cLen);
 
 //Get chr index
-int32_t get_ctg(const GAIList *ail, const char *chr);
+//int32_t get_ctg(const void* hp, const char *chr);
+//int32_t get_ctg(const AIList *ail, const char *chr);
+int32_t get_ctg(const AIList *ail, const char *chr);
 
 //Binary search
 uint32_t bSearch(AIData* As, uint32_t idxS, uint32_t idxE, uint32_t qe);
 
 //Query ailist intervals
-uint32_t ailist_query(GAIList *ail, char *chr, uint32_t qs, uint32_t qe, uint32_t *mr, uint32_t **ir);
+uint32_t gailist_query(AIList *ail, char *chr, uint32_t qs, uint32_t qe, uint32_t *mr, uint32_t **ir);
 
 //Free ailist data
-void ailist_destroy(GAIList *ail);
+void gailist_destroy(AIList *ail);
 //-------------------------------------------------------------------------------------
 //The following section taken from Dr Heng Li's cgranges
 // (https://github.com/lh3/cgranges)

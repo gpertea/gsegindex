@@ -23,7 +23,7 @@
 #include "GResUsage.h"
 
 //Parse a line of BED file
-char *parse_bed(char *s, int32_t *st_, int32_t *en_);
+char *parse_bed(char *s, uint32_t *st_, uint32_t *en_);
 
 
 #endif /* IUTIL_H_ */
