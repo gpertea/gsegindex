@@ -78,7 +78,9 @@ struct GAIList{
 	//AICtgData *ctglst; // list of contigs (of size nctg)
 	ctg_t *ctg;            // list of contigs (of size nctg)
 	uint32_t nctg, mctg;   // count and max number of contigs
-	void *hc;              // dict for converting contig names to int
+	//void *hc;              // dict for converting contig names to int
+	GHashMap<const char*, int32_t>* ctghash;
+
 	void init();
 	void loadBED(const char* fn);
 	void add(const char *chr, uint32_t s, uint32_t e, uint32_t payload);

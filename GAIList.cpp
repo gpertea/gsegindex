@@ -37,6 +37,7 @@ AIList *gailist_init(void)
 	AIList *ail = malloc(1*sizeof(AIList));
 	//ail->hc = kh_init(str);
 	ail->ctghash=new GHashMap<const char*, int32_t>();
+	ail->ctghash->resize(64);
 	ail->nctg = 0;
 	ail->mctg = 32;
 	ail->ctg = malloc(ail->mctg*sizeof(ctg_t));
@@ -96,25 +97,6 @@ void gailist_add(AIList *ail, const char *chr, uint32_t s, uint32_t e, uint32_t 
 		q = &ail->ctg[ail->ctghash->getValue(hidx)];
 	}
 
-	/*
-	int absent;
-	khint_t k;
-	strhash_t *h = (strhash_t*)ail->hc;
-	k = kh_put(str, h, chr, &absent);
-	if (absent) {
-		if (ail->nctg == ail->mctg)
-			EXPAND(ail->ctg, ail->mctg);
-		kh_val(h, k) = ail->nctg;
-		ctg_t *p = &ail->ctg[ail->nctg++];
-		p->name = strdup(chr);
-		p->nr=0;	p->mr=64;
-		p->glist = malloc(p->mr*sizeof(AIData));
-		kh_key(h, k) = p->name;
-	}
-	int32_t kk = kh_val(h, k);
-
-	ctg_t *q = &ail->ctg[kk];
-	*/
 	if (q->nr == q->mr)
 		{ EXPAND(q->glist, q->mr); }
 	AIData *p = &q->glist[q->nr++];
@@ -124,29 +106,28 @@ void gailist_add(AIList *ail, const char *chr, uint32_t s, uint32_t e, uint32_t 
 }
 
 void GAIList::add(const char *chr, uint32_t s, uint32_t e, uint32_t payload) {
-	if(s > e)return;
-	int absent;
-	khint_t k;
-	strhash_t *h = (strhash_t*)hc;
-	k = kh_put(str, h, chr, &absent);
-	if (absent) {
-		if (nctg == mctg) {
-			EXPAND(ctg, mctg);
-		}
-		kh_val(h, k) = nctg;
-		ctg_t *p = &ctg[nctg++];
-		p->name = strdup(chr);
-		p->nr=0;	p->mr=64;
-		p->glist = malloc(p->mr*sizeof(AIData));
-		kh_key(h, k) = p->name;
+	if(s > e) return;
+	bool cnew=false;
+	uint64_t hidx=ctghash->addIfNew(chr, nctg, cnew);
+	ctg_t *q;
+	if (cnew) { //new contig
+		if (ail->nctg == ail->mctg)
+			{ EXPAND(ail->ctg, ail->mctg); }
+		q = &ail->ctg[ail->nctg++];
+		q->name=strdup(chr);
+		q->nr=0; q->mr=64;
+		GMALLOC( q->glist, (q->mr * sizeof(AIData)) );
+		ail->ctghash->setKey(hidx, q->name);
+	} else {
+		q = &ail->ctg[ail->ctghash->getValue(hidx)];
 	}
-	int32_t kk = kh_val(h, k);
-	ctg_t *q = &ctg[kk];
+
 	if (q->nr == q->mr)
-		EXPAND(q->glist, q->mr);
+		{ EXPAND(q->glist, q->mr); }
 	AIData *p = &q->glist[q->nr++];
 	p->start = s;
 	p->end   = e;
+	p->didx = v;
 }
 
 //-------------------------------------------------------------------------------
