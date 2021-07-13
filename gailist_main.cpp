@@ -5,12 +5,7 @@
 //Radix sorting and one-pass loading based on lh3's cgranges: 6/20/2019
 //-----------------------------------------------------------------------------
 #include "GAIList.h"
-#define PROGRAM_NAME  "ailist"
-#define MAJOR_VERSION "0"
-#define MINOR_VERSION "1"
-#define REVISION_VERSION "1"parse_bed
-#define BUILD_VERSION "0"
-#define VERSION MAJOR_VERSION "." MINOR_VERSION "." REVISION_VERSION
+#define PROGRAM_NAME  "gailist"
 
 int ailist_help(int argc, char **argv, int exit_code);
 
@@ -67,11 +62,6 @@ int main(int argc, char **argv)
     //3. Search
 	int64_t nol = 0;
 	uint32_t nhits=0;//, mr=1000000; //mr: initial capacity of hits[]
-	//uint32_t *hits=NULL;
-	//GMALLOC(hits, mr*sizeof(uint32_t));
-	//GDynArray<uint32_t> hits(mr);
-	//std::vector<uint32_t> hits;
-	//hits.reserve(mr);
 	gzFile fp;
 	if ((fp=gzopen(argv[2], "r"))) {
 		GFStream<gzFile, int (*)(gzFile, voidp, unsigned int)> fs(fp, gzread);
@@ -91,37 +81,7 @@ int main(int argc, char **argv)
 		}
 	} else GError("Error: failed to open file %s\n", argv[2]);
 
-	//free(hits);
 	gzclose(fp);
-
-	//gailist_destroy(ail);
-	//gail.destroy();
-
-   /*
-	kstream_t *ks;
-	kstring_t str = {0,0,0};
-	gzFile fp = gzopen(argv[2], "r");
-	assert(fp);
-	ks = ks_init(fp);
-	while (ks_getuntil(ks, KS_SEP_LINE, &str, 0) >= 0) {
-		uint32_t st1, en1;
-		char *ctg;
-		ctg = parse_bed(str.s, &st1, &en1);
-		if (ctg == 0) continue;
-		nhits = gailist_query(ail, ctg, st1, en1, &mr, &hits);
-		if(pmode==0 && nhits>0)
-			printf("%s\t%d\t%d\t%d\n", ctg, st1, en1, nhits);
-		nol += nhits;
-	}
-	//end3 = clock();
-    //printf("Total %lld\n", (long long)nol);
-    //printf("query time: %f\n", ((double)(end3-end2))/CLOCKS_PER_SEC);
-
-  	free(str.s);
-	free(hits);
-	gzclose(fp);
-	ks_destroy(ks);
-	*/
 
     return 0;
 }

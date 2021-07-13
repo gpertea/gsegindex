@@ -4,19 +4,66 @@
 //Decomposition & simplication: 11/26/2018
 //Radix sorting and one-pass loading based on lh3's cgranges: 6/20/2019
 //-----------------------------------------------------------------------------
-
 #include "GAIList.h"
 
-#define AIData_key(r) ((r).start)
-KRADIX_SORT_INIT(intv, AIData, AIData_key, 4)
+// Radix Sort
+#define RS_MIN_SIZE 64
+#define RS_MAX_BITS 8
+#define RegDataKEY(r) ((r).start)
 
-KHASH_MAP_INIT_STR(str, int32_t)
-typedef khash_t(str) strhash_t;
+struct RdxSortBucket {
+	AIRegData *b, *e;
+};
 
-int32_t bSearch(AIData* As, int32_t idxS, int32_t idxE, uint32_t qe) {   //find tE: index of the first item satisfying .s<qe from right
+void rdx_insertsort(AIRegData *beg, AIRegData *end) {
+	AIRegData *i;
+	for (i = beg + 1; i < end; ++i)
+		if (RegDataKEY(*i) < RegDataKEY(*(i - 1))) {
+			AIRegData *j, tmp = *i;
+			for (j = i; j > beg && RegDataKEY(tmp) < RegDataKEY(*(j-1)); --j)
+				*j = *(j - 1);
+			*j = tmp;
+		}
+}
+void rdx_sort(AIRegData *beg, AIRegData *end, int n_bits, int s) {
+	AIRegData *i;
+	int size = 1<<n_bits, m = size - 1;
+	RdxSortBucket *k, b[1<<RS_MAX_BITS], *be = b + size;
+	assert(n_bits <= RS_MAX_BITS);
+	for (k = b; k != be; ++k) k->b = k->e = beg;
+	for (i = beg; i != end; ++i) ++b[RegDataKEY(*i)>>s&m].e;
+	for (k = b + 1; k != be; ++k)
+		k->e += (k-1)->e - beg, k->b = (k-1)->e;
+	for (k = b; k != be;) {
+		if (k->b != k->e) {
+			RdxSortBucket *l;
+			if ((l = b + (RegDataKEY(*k->b)>>s&m)) != k) {
+				AIRegData tmp = *k->b, swap;
+				do {
+					swap = tmp; tmp = *l->b; *l->b++ = swap;
+					l = b + (RegDataKEY(tmp)>>s&m);
+				} while (l != k);
+				*k->b++ = tmp;
+			} else ++k->b;
+		} else ++k;
+	}
+	for (b->b = beg, k = b + 1; k != be; ++k) k->b = (k-1)->e;
+	if (s) {
+		s = s > n_bits? s - n_bits : 0;
+		for (k = b; k != be; ++k)
+			if (k->e - k->b > RS_MIN_SIZE) rdx_sort(k->b, k->e, n_bits, s);
+			else if (k->e - k->b > 1) rdx_insertsort(k->b, k->e);
+	}
+}
+void radix_sort_regs(AIRegData *beg, AIRegData *end) {
+	if (end - beg <= RS_MIN_SIZE) rdx_insertsort(beg, end);
+	else rdx_sort(beg, end, RS_MAX_BITS, (sizeof(int32_t) - 1) * RS_MAX_BITS);
+}
+
+int32_t bSearch(AIRegData* As, int32_t idxS, int32_t idxE, uint32_t qe) {   //find tE: index of the first item satisfying .s<qe from right
     int tE=-1, tL=idxS, tR=idxE-1, tM, d;
     uint32_t v;
-    AIData* p=As;
+    AIRegData* p=As;
     while((d=tR-tL)>1) {
     	tM = tL + (d>>1);
     	v=p[tM].start;
@@ -38,7 +85,7 @@ void GAIList::init() {
 	ctghash->resize(64);
 	nctg = 0;
 	mctg = 32;
-	GMALLOC(ctg, mctg*sizeof(ctg_t));
+	GMALLOC(ctg, mctg*sizeof(AICtgData));
 	h_count=0;
 	h_cap=1000000;
 	GMALLOC(hits, h_cap*sizeof(uint32_t));
@@ -58,21 +105,20 @@ void GAIList::destroy() {
 
 #define CALLOC(type, len) ((type*)calloc((len), sizeof(type)))
 #define REALLOC(ptr, len) ((ptr) = (__typeof__(ptr))realloc((ptr), (len) * sizeof(*(ptr))))
-
 #define EXPAND(a, m) { (m) = (m)? (m) + ((m)>>1) : 16; REALLOC((a), (m)); }
 
 void GAIList::add(const char *chr, uint32_t s, uint32_t e, uint32_t payload) {
 	if(s > e) return;
 	bool cnew=false;
 	uint64_t hidx=ctghash->addIfNew(chr, nctg, cnew);
-	ctg_t *q;
+	AICtgData *q;
 	if (cnew) { //new contig
 		if (nctg == mctg)
 			{ EXPAND(ctg, mctg); }
 		q = &ctg[nctg++];
 		q->name=strdup(chr);
 		q->nr=0; q->mr=64;
-		GMALLOC( q->glist, (q->mr * sizeof(AIData)) );
+		GMALLOC( q->glist, (q->mr * sizeof(AIRegData)) );
 		ctghash->setKey(hidx, q->name);
 	} else {
 		q = &ctg[ctghash->getValue(hidx)];
@@ -80,7 +126,7 @@ void GAIList::add(const char *chr, uint32_t s, uint32_t e, uint32_t payload) {
 
 	if (q->nr == q->mr)
 		{ EXPAND(q->glist, q->mr); }
-	AIData *p = &q->glist[q->nr++];
+	AIRegData *p = &q->glist[q->nr++];
 	p->start = s;
 	p->end   = e;
 	p->didx = payload;
@@ -112,21 +158,22 @@ void GAIList::build(int cLen) {
 	int lenT, len, iter, i, j, k, k0, t;
 	for(i=0; i<nctg; i++){
 		//1. Decomposition
-		ctg_t *p    = &ctg[i];
-		AIData *L1 = p->glist;							//L1: to be rebuilt
-		nr 		   = p->nr;
-		radix_sort_intv(L1, L1+nr);
+		AICtgData *p    = &ctg[i];
+		AIRegData *L1 = p->glist;  //L1: to be rebuilt
+		nr = p->nr;
+		//radix_sort_intv(L1, L1+nr);
+		radix_sort_regs(L1, L1+nr);
 		if(nr<=minL){
 			p->nc = 1, p->lenC[0] = nr, p->idxC[0] = 0;
 		}
 		else{
-			AIData *L0 = (AIData *)malloc(nr*sizeof(AIData)); 	//L0: serve as input list
-			AIData *L2 = (AIData *)malloc(nr*sizeof(AIData));   //L2: extracted list
+			AIRegData *L0 = (AIRegData *)malloc(nr*sizeof(AIRegData)); 	//L0: serve as input list
+			AIRegData *L2 = (AIRegData *)malloc(nr*sizeof(AIRegData));   //L2: extracted list
 			//----------------------------------------
-			AIData *D0 = (AIData *)malloc(nr*sizeof(AIData)); 	//D0:
+			AIRegData *D0 = (AIRegData *)malloc(nr*sizeof(AIRegData)); 	//D0:
 			int32_t *di = (int32_t*)malloc(nr*sizeof(int32_t));	//int64_t?
 			//----------------------------------------
-			memcpy(L0, L1, nr*sizeof(AIData));
+			memcpy(L0, L1, nr*sizeof(AIRegData));
 			iter = 0;	k = 0;	k0 = 0;
 			lenT = nr;
 			while(iter<MAXC && lenT>minL){
@@ -135,7 +182,8 @@ void GAIList::build(int cLen) {
 					D0[j].start = L0[j].end;
 					D0[j].end = j;
 				}
-				radix_sort_intv(D0, D0+lenT);
+				//radix_sort_intv(D0, D0+lenT);
+				radix_sort_regs(D0, D0+lenT);
 				for(j=0;j<lenT;j++){				//assign i=29 to L0[i].end=2
 					t = D0[j].end;
 					di[t] = j-t;					//>0 indicate containment
@@ -144,18 +192,18 @@ void GAIList::build(int cLen) {
 				len = 0;
 				for(t=0;t<lenT-cLen;t++){
 					if(di[t]>cLen)
-						memcpy(&L2[len++], &L0[t], sizeof(AIData));
+						memcpy(&L2[len++], &L0[t], sizeof(AIRegData));
 					else
-						memcpy(&L1[k++], &L0[t], sizeof(AIData));
+						memcpy(&L1[k++], &L0[t], sizeof(AIRegData));
 				}
-				memcpy(&L1[k], &L0[lenT-cLen], cLen*sizeof(AIData));
+				memcpy(&L1[k], &L0[lenT-cLen], cLen*sizeof(AIRegData));
 				k += cLen, lenT = len;
 				p->idxC[iter] = k0;
 				p->lenC[iter] = k-k0;
 				k0 = k, iter++;
 				if(lenT<=minL || iter==MAXC-2){			//exit: add L2 to the end
 					if(lenT>0){
-						memcpy(&L1[k], L2, lenT*sizeof(AIData));
+						memcpy(&L1[k], L2, lenT*sizeof(AIRegData));
 						p->idxC[iter] = k;
 						p->lenC[iter] = lenT;
 						iter++;
@@ -163,7 +211,7 @@ void GAIList::build(int cLen) {
 					}
 					p->nc = iter;
 				}
-				else memcpy(L0, L2, lenT*sizeof(AIData));
+				else memcpy(L0, L2, lenT*sizeof(AIRegData));
 			}
 			free(L2),free(L0), free(D0), free(di);
 		}
@@ -190,11 +238,11 @@ inline int32_t GAIList::getCtg(const char *chr) {
 uint32_t GAIList::query(char *chr, uint32_t qs, uint32_t qe) {
     //interestingly enough having a local copy of the hits-related fields
     // leads to better speed optimization! (likely due to using registers?)
-    uint32_t nr = 0, m = h_cap;
+    uint32_t nr = 0, m = h_cap, newc;
     uint32_t* r = hits;
     int32_t gid = getCtg(chr);
     if(gid>=nctg || gid<0)return 0;
-    ctg_t *p = &ctg[gid];
+    AICtgData *p = &ctg[gid];
     for(int k=0; k<p->nc; k++) { //search each component
         int32_t cs = p->idxC[k];
         int32_t ce = cs + p->lenC[k];
@@ -202,8 +250,9 @@ uint32_t GAIList::query(char *chr, uint32_t qs, uint32_t qe) {
         if(p->lenC[k]>15){ //use binary search
             t = bSearch(p->glist, cs, ce, qe); 	//rs<qe: inline not better
             if(t>=cs){
-		        if(nr+t-cs>=m){
-		        	m = nr+t-cs + 1024;
+            	newc=nr+t-cs;
+		        if(newc>=m){
+		        	m = newc + 1024;
 		        	r = (uint32_t*)realloc(r, m*sizeof(uint32_t));
 		        }
 		        while(t>=cs && p->maxE[t]>qs){
@@ -214,8 +263,9 @@ uint32_t GAIList::query(char *chr, uint32_t qs, uint32_t qe) {
             }
         }
         else { //use linear search
-        	if(nr+ce-cs>=m){
-        		m = nr+ce-cs + 1024;
+        	newc=nr+ce-cs;
+        	if(newc>=m){
+        		m = newc + 1024;
         		r = (uint32_t*)realloc(r, m*sizeof(uint32_t));
         	}
             for(t=cs; t<ce; t++)
