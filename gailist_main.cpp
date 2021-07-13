@@ -66,10 +66,12 @@ int main(int argc, char **argv)
     //GMessage("%s AIList built in %.2f sec\n", argv[1], mtime, memused);
     //3. Search
 	int64_t nol = 0;
-	uint32_t nhits=0, mr=1000000; //mr: initial capacity of hits[]
-	uint32_t *hits=NULL;
-	GMALLOC(hits, mr*sizeof(uint32_t));
-	//GDynArray<uint32_t> hits(1000000);
+	uint32_t nhits=0;//, mr=1000000; //mr: initial capacity of hits[]
+	//uint32_t *hits=NULL;
+	//GMALLOC(hits, mr*sizeof(uint32_t));
+	//GDynArray<uint32_t> hits(mr);
+	//std::vector<uint32_t> hits;
+	//hits.reserve(mr);
 	gzFile fp;
 	if ((fp=gzopen(argv[2], "r"))) {
 		GFStream<gzFile, int (*)(gzFile, voidp, unsigned int)> fs(fp, gzread);
@@ -81,16 +83,15 @@ int main(int argc, char **argv)
 			ctg = parse_bed(line(), &st1, &en1);
 			if (ctg == 0) continue;
 			//nhits = gailist_query(ail, ctg, st1, en1, &mr, &hits);
-			nhits=gail.query(ctg, st1, en1, &mr, &hits);
+			nhits=gail.query(ctg, st1, en1);
 			//nhits=ail.query(ctg, st1, en1, hits);
 			if (pmode==0 && nhits>0)
 				printf("%s\t%d\t%d\t%d\n", ctg, st1, en1, nhits);
 			nol += nhits;
-			//hits.Reset();
 		}
 	} else GError("Error: failed to open file %s\n", argv[2]);
 
-	free(hits);
+	//free(hits);
 	gzclose(fp);
 
 	//gailist_destroy(ail);
