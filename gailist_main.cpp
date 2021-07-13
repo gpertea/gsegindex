@@ -32,7 +32,7 @@ int main(int argc, char **argv)
     //1. Read interval data
   GResUsage ru;
   //ru.start();
-  
+
   //AIList *ail =  greadBED(argv[1]);
   GAIList gail;
   gail.loadBED(argv[1]);
@@ -89,7 +89,10 @@ int main(int argc, char **argv)
 			//hits.Reset();
 		}
 	} else GError("Error: failed to open file %s\n", argv[2]);
+
+	free(hits);
 	gzclose(fp);
+
 	//gailist_destroy(ail);
 	//gail.destroy();
 
