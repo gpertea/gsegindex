@@ -5,7 +5,10 @@
 //Radix sorting and one-pass loading based on lh3's cgranges: 6/20/2019
 //-----------------------------------------------------------------------------
 #include "GAIList.h"
+#include "GRadixSorter.hh"
+//#include "KRadixSorter.hh"
 
+/*
 // Radix Sort
 #define RS_MIN_SIZE 64
 #define RS_MAX_BITS 8
@@ -59,88 +62,7 @@ void radix_sort_regs(AIRegData *beg, AIRegData *end) {
 	if (end - beg <= RS_MIN_SIZE) rdx_insertsort(beg, end);
 	else rdx_sort(beg, end, RS_MAX_BITS, (sizeof(int32_t) - 1) * RS_MAX_BITS);
 }
-
-// ---- radix sort 6 from https://github.com/travisdowns/sort-bench/blob/master/radix6.cpp
-
-#include <algorithm>
-#include <memory>
-#include <array>
-
-const size_t    RADIX_BITS   = 8;
-const size_t    RADIX_SIZE   = (size_t)1 << RADIX_BITS;
-const size_t    RADIX_LEVELS = (63 / RADIX_BITS) + 1;
-const uint64_t  RADIX_MASK   = RADIX_SIZE - 1;
-
-using freq_array_type = size_t [RADIX_LEVELS][RADIX_SIZE];
-
-static void count_frequency(AIRegData *a, size_t count, freq_array_type freqs) {
-  for (size_t i = 0; i < count; i++) {
-      uint64_t value = RegDataKEY(a[i]);
-      for (size_t pass = 0; pass < RADIX_LEVELS; pass++) {
-          freqs[pass][value & RADIX_MASK]++;
-          value >>= RADIX_BITS;
-      }
-  }
-}
-
-/* Determine if the frequencies for a given level are "trivial".
- *
- * Frequencies are trivial if only a single frequency has non-zero
- * occurrences. In that case, the radix step just acts as a copy so we can
- * skip it.  */
-static bool is_trivial(size_t freqs[RADIX_SIZE], size_t count) {
-    for (size_t i = 0; i < RADIX_SIZE; i++) {
-        auto freq = freqs[i];
-        if (freq != 0) {
-            return freq == count;
-        }
-    }
-    //assert(count == 0); // we only get here if count was zero
-    return true;
-}
-
-void radix_sort6(AIRegData *a, size_t count) {
-    std::unique_ptr<AIRegData[]> queue_area(new AIRegData[count]);
-    freq_array_type freqs = {};
-    count_frequency(a, count, freqs);
-
-    AIRegData *from = a, *to = queue_area.get();
-
-    for (size_t pass = 0; pass < RADIX_LEVELS; pass++) {
-
-        if (is_trivial(freqs[pass], count)) {
-            // this pass would do nothing, just skip it
-            continue;
-        }
-
-        uint64_t shift = pass * RADIX_BITS;
-
-        // array of pointers to the current position in each queue, which we set up based on the
-        // known final sizes of each queue (i.e., "tighly packed")
-        AIRegData * queue_ptrs[RADIX_SIZE], * next = to;
-        for (size_t i = 0; i < RADIX_SIZE; i++) {
-            queue_ptrs[i] = next;
-            next += freqs[pass][i];
-        }
-
-        // copy each element into the appropriate queue based on the current RADIX_BITS sized
-        // "digit" within it
-        for (size_t i = 0; i < count; i++) {
-            size_t value = RegDataKEY(from[i]);
-            size_t index = (value >> shift) & RADIX_MASK;
-            *queue_ptrs[index]++ = from[i]; //value
-        }
-
-        // swap from and to areas
-        std::swap(from, to);
-    }
-
-    // because of the last swap, the "from" area has the sorted payload: if it's
-    // not the original array "a", do a final copy
-    if (from != a) {
-        std::copy(from, from + count, a);
-    }
-}
+*/
 
 int32_t bSearch(AIRegData* As, int32_t idxS, int32_t idxE, uint32_t qe) {   //find tE: index of the first item satisfying .s<qe from right
     int tE=-1, tL=idxS, tR=idxE-1, tM, d;
@@ -160,7 +82,6 @@ int32_t bSearch(AIRegData* As, int32_t idxS, int32_t idxE, uint32_t qe) {   //fi
         tE = tL;
     return tE;
 }
-
 
 void GAIList::init() {
 	ctghash=new GHashMap<const char*, int32_t>();
@@ -238,6 +159,8 @@ void GAIList::build(int cLen) {
 	int cLen1=cLen/2, nr, minL = GMAX(64, cLen);
 	cLen += cLen1;
 	int lenT, len, iter, i, j, k, k0, t;
+	GRadixSorter<AIRegData, uint32_t, & AIRegData::start> rdx;
+	//KRadixSorter<AIRegData, uint32_t, & AIRegData::start> rdx;
 	for(i=0; i<nctg; i++){
 		//1. Decomposition
 		AICtgData *p    = &ctg[i];
@@ -245,7 +168,8 @@ void GAIList::build(int cLen) {
 		nr = p->nr;
 		//radix_sort_intv(L1, L1+nr);
 		//radix_sort_regs(L1, L1+nr);
-		radix_sort6(L1, nr);
+		//radix_sort(L1, nr);
+		rdx.sort(L1, nr);
 		if(nr<=minL){
 			p->nc = 1, p->lenC[0] = nr, p->idxC[0] = 0;
 		}
@@ -267,7 +191,8 @@ void GAIList::build(int cLen) {
 				}
 				//radix_sort_intv(D0, D0+lenT);
 				//radix_sort_regs(D0, D0+lenT);
-				radix_sort6(D0,lenT);
+				//radix_sort6(D0,lenT);
+				rdx.sort(D0, lenT);
 				for(j=0;j<lenT;j++){				//assign i=29 to L0[i].end=2
 					t = D0[j].end;
 					di[t] = j-t;					//>0 indicate containment

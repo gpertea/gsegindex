@@ -46,7 +46,7 @@ gailist: GAIList.o iutil.o gailist_main.o $(GCLIB)/GBase.o $(GCLIB)/GResUsage.o
 		${LINKER} ${LDFLAGS} -o $@ ${filter-out %.a %.so, $^} ${LIBS}
 
 gbedcov.o: iutil.h iutil.cpp gbedcov.cpp
-GAIList.o: iutil.h iutil.cpp GAIList.h 
+GAIList.o: iutil.h iutil.cpp GAIList.h GRadixSorter.hh
 ailist_main.o: iutil.h iutil.cpp AIList.h AIList.cpp
 gailist_main.o: iutil.h iutil.cpp GAIList.h GAIList.cpp
 
