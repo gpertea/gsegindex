@@ -66,27 +66,27 @@ template <typename REC> class GAIList {
 	void build(int cLen); //ailist_construct
 	uint32_t query(const char *chr, uint32_t qs, uint32_t qe);
 	uint32_t hitCount() { return h_count; } //for last query()
-	REC hit(uint32_t hit_idx) { //for last query()
+	REC hitData(uint32_t hit_idx) { //for last query()
 		if (hit_idx<h_count && h_ctg>=0) {
 			uint32_t h=hits[hit_idx];
 			return ctgs[h_ctg].glist[h].data;
 		}
 	   return -1;
 	}
-	const char* hit_ctg(uint32_t hit_idx) { //for last query()
+	const char* hitCtg(uint32_t hit_idx) { //for last query()
 		if (hit_idx<h_count && h_ctg>=0) {
 			return ctgs[h_ctg].name;
 		}
 	   return NULL;
 	}
-	uint32_t hit_start(uint32_t hit_idx) { //for last query()
+	uint32_t hitStart(uint32_t hit_idx) { //for last query()
 		if (hit_idx<h_count && h_ctg>=0) {
 			uint32_t h=hits[hit_idx];
 			return ctgs[h_ctg].glist[h].start;
 		}
 	   return (uint32_t)-1;
 	}
-	uint32_t hit_end(uint32_t hit_idx) { //for last query()
+	uint32_t hitEnd(uint32_t hit_idx) { //for last query()
 		if (hit_idx<h_count && h_ctg>=0) {
 			uint32_t h=hits[hit_idx];
 			return ctgs[h_ctg].glist[h].end;

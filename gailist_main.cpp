@@ -32,10 +32,10 @@ void loadFromBED(GAIList<int32_t>& a, const char* fn) {
 void showHits(GAIList<int32_t>& a) {
    int nh=a.hitCount();
    for (int i=0;i<nh;i++) {
-	   const char* ctg=a.hit_ctg(i);
-	   uint32_t hstart=a.hit_start(i);
-	   uint32_t hend=a.hit_end(i);
-	   int32_t d=a.hit(i);
+	   const char* ctg=a.hitCtg(i);
+	   uint32_t hstart=a.hitStart(i);
+	   uint32_t hend=a.hitEnd(i);
+	   int32_t d=a.hitData(i);
 	   printf("hit %d: %s:%d-%d\n", d, ctg, hstart, hend);
    }
 }
@@ -108,7 +108,7 @@ int main(int argc, char **argv)
 			//nhits=ail.query(ctg, st1, en1, hits);
 			if (pmode==0 && nhits>0)
 				printf("%s\t%d\t%d\t%d\n", ctg, st1, en1, nhits);
-			//showHits(gail);
+			showHits(gail);
 			nol += nhits;
 		}
 	} else GError("Error: failed to open file %s\n", argv[2]);
