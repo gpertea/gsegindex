@@ -8,62 +8,6 @@
 #include "GRadixSorter.hh"
 //#include "KRadixSorter.hh"
 
-/*
-// Radix Sort
-#define RS_MIN_SIZE 64
-#define RS_MAX_BITS 8
-#define RegDataKEY(r) ((r).start)
-
-struct RdxSortBucket {
-	AIRegData *b, *e;
-};
-
-void rdx_insertsort(AIRegData *beg, AIRegData *end) {
-	AIRegData *i;
-	for (i = beg + 1; i < end; ++i)
-		if (RegDataKEY(*i) < RegDataKEY(*(i - 1))) {
-			AIRegData *j, tmp = *i;
-			for (j = i; j > beg && RegDataKEY(tmp) < RegDataKEY(*(j-1)); --j)
-				*j = *(j - 1);
-			*j = tmp;
-		}
-}
-void rdx_sort(AIRegData *beg, AIRegData *end, int n_bits, int s) {
-	AIRegData *i;
-	int size = 1<<n_bits, m = size - 1;
-	RdxSortBucket *k, b[1<<RS_MAX_BITS], *be = b + size;
-	assert(n_bits <= RS_MAX_BITS);
-	for (k = b; k != be; ++k) k->b = k->e = beg;
-	for (i = beg; i != end; ++i) ++b[RegDataKEY(*i)>>s&m].e;
-	for (k = b + 1; k != be; ++k)
-		k->e += (k-1)->e - beg, k->b = (k-1)->e;
-	for (k = b; k != be;) {
-		if (k->b != k->e) {
-			RdxSortBucket *l;
-			if ((l = b + (RegDataKEY(*k->b)>>s&m)) != k) {
-				AIRegData tmp = *k->b, swap;
-				do {
-					swap = tmp; tmp = *l->b; *l->b++ = swap;
-					l = b + (RegDataKEY(tmp)>>s&m);
-				} while (l != k);
-				*k->b++ = tmp;
-			} else ++k->b;
-		} else ++k;
-	}
-	for (b->b = beg, k = b + 1; k != be; ++k) k->b = (k-1)->e;
-	if (s) {
-		s = s > n_bits? s - n_bits : 0;
-		for (k = b; k != be; ++k)
-			if (k->e - k->b > RS_MIN_SIZE) rdx_sort(k->b, k->e, n_bits, s);
-			else if (k->e - k->b > 1) rdx_insertsort(k->b, k->e);
-	}
-}
-void radix_sort_regs(AIRegData *beg, AIRegData *end) {
-	if (end - beg <= RS_MIN_SIZE) rdx_insertsort(beg, end);
-	else rdx_sort(beg, end, RS_MAX_BITS, (sizeof(int32_t) - 1) * RS_MAX_BITS);
-}
-*/
-
 int32_t bSearch(AIRegData* As, int32_t idxS, int32_t idxE, uint32_t qe) {   //find tE: index of the first item satisfying .s<qe from right
     int tE=-1, tL=idxS, tR=idxE-1, tM, d;
     uint32_t v;

@@ -1,7 +1,7 @@
 CXX   := $(if $(CXX),$(CXX),g++)
 GCLIB := ../gclib
 INC := -I. -I$(GCLIB)
-CXXFLAGS := -g -Wall -O3 $(INC) -std=c++11 -fpermissive
+CXXFLAGS := -g -DNDEBUG -Wall -O3 $(INC) -std=c++11 -fpermissive
 LIBS := -lz
 
 LINKER  := $(if $(LINKER),$(LINKER),g++)

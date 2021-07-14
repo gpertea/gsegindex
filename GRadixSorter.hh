@@ -3,14 +3,18 @@
 #include <algorithm>
 #include <memory>
 #include <array>
+
 template <typename REC, typename UINT, UINT REC::* KeyPtr> class GRadixSorter {
-   public:
+   protected:
      static const int  RADIX_BITS   = 8;
      static const int    RADIX_SIZE   = (UINT)1 << RADIX_BITS;
      static const int    RADIX_LEVELS = (((sizeof(UINT)*8)-1) / RADIX_BITS) + 1;
      static const UINT  RADIX_MASK   = RADIX_SIZE - 1;
      using freq_array_type = UINT [RADIX_LEVELS][RADIX_SIZE];
 
+
+     std::unique_ptr< REC[] > qreg;
+     size_t qreg_len = 0;
      static void count_frequency(REC *a, UINT count, freq_array_type freqs) {
        for (UINT i = 0; i < count; i++) {
             UINT value = a[i].*KeyPtr;
@@ -32,16 +36,19 @@ template <typename REC, typename UINT, UINT REC::* KeyPtr> class GRadixSorter {
                 return freq == count;
             }
         }
-        //assert(count == 0); // we only get here if count was zero
+        assert(count == 0); // we only get here if count was zero
         return true;
     }
-
+  public:
     void sort(REC *a, size_t count) {
-        std::unique_ptr< REC[] > queue_area(new REC[count]);
         freq_array_type freqs = {};
+        if (qreg_len< count) {
+        	qreg = std::unique_ptr<REC[]>(new REC[count]);
+        	qreg_len=count;
+        }
         count_frequency(a, count, freqs);
 
-        REC *from = a, *to = queue_area.get();
+        REC *from = a, *to = qreg.get();
 
         for (UINT pass = 0; pass < RADIX_LEVELS; pass++) {
 
