@@ -15,15 +15,12 @@ int32_t bSearch(AIRegData* As, int32_t idxS, int32_t idxE, uint32_t qe) {   //fi
     while((d=tR-tL)>1) {
     	tM = tL + (d>>1);
     	v=p[tM].start;
-        if(v >= qe)
-            tR = tM-1;
-        else
-            tL = tM;
+        if(v >= qe) tR = tM-1;
+               else tL = tM;
     }
-    if(p[tR].start < qe)
-        tE = tR;
+    if(p[tR].start < qe) tE = tR;
     else if(p[tL].start < qe)
-        tE = tL;
+                         tE = tL;
     return tE;
 }
 
