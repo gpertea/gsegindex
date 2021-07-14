@@ -25,6 +25,7 @@ template <typename REC> class GAIList {
 		int nc, lenC[MAXC], idxC[MAXC];  //components
 		uint32_t *maxE;                  //augmentation
 	};
+	bool ready=false; //ready for query (only after build() is called)
 	AICtgData *ctgs;            // list of contigs (of size nctg)
 	int32_t nctg, mctg;   // count and max number of contigs
 	//void *hc;              // dict for converting contig names to int
@@ -45,6 +46,7 @@ template <typename REC> class GAIList {
 		ctghash->resize(64);
 		nctg = 0;
 		mctg = 32;
+		ready=false;
 		GMALLOC(ctgs, mctg*sizeof(AICtgData));
 		h_count=0;
 		h_cap=1000000;
@@ -62,8 +64,10 @@ template <typename REC> class GAIList {
 		delete ctghash;
 	}
   public:
+	      //add a chr:start-end interval (0-based, end not included)
 	void add(const char *chr, uint32_t s, uint32_t e, REC payload);
-	void build(int cLen); //ailist_construct
+	void build(int cLen); //freeze the data, prepare for query
+	//query a BED-style interval: 0 based, open-ended
 	uint32_t query(const char *chr, uint32_t qs, uint32_t qe);
 	uint32_t hitCount() { return h_count; } //for last query()
 	REC hitData(uint32_t hit_idx) { //for last query()
@@ -94,7 +98,7 @@ template <typename REC> class GAIList {
 	   return (uint32_t)-1;
 	}
 
-	const char* ctg(int32_t id) { if ((uint32_t)id<nctg) return ctgs[id]; return NULL; }
+	const char* ctg(int32_t id) { if ((uint32_t)id<nctg) return ctgs[id].name; return NULL; }
 	GAIList() { this->init(); }
 	~GAIList() { this->destroy(); }
 };
@@ -232,6 +236,7 @@ template<class REC> uint32_t GAIList<REC>::query(const char *chr, uint32_t qs, u
     // leads to better speed optimization! (likely due to using registers?)
     uint32_t nr = 0, m = h_cap, newc;
     uint32_t* r = hits;
+    if (!this->ready) { fprintf(stderr, "Error: GAIList query() call before build()!\n"); exit(1); }
     int32_t gid = getCtg(chr);
     if(gid>=nctg || gid<0) { h_ctg=-1; h_count=0; return 0;}
     AICtgData *p = &ctgs[gid];
