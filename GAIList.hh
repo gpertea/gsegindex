@@ -1,14 +1,77 @@
-//=============================================================================
-//Read .BED datasets, and then find all overlaps
-//by Jianglin Feng  09/05/2018
-//Decomposition & simplication: 11/26/2018
-//Radix sorting and one-pass loading based on lh3's cgranges: 6/20/2019
-//-----------------------------------------------------------------------------
-#include "GAIList.h"
-#include "GRadixSorter.hh"
-//#include "KRadixSorter.hh"
+//=====================================================================================
+//Common structs, parameters, functions
+//by Jianglin Feng  09/5/2018
+//-------------------------------------------------------------------------------------
 
-int32_t bSearch(AIRegData* As, int32_t idxS, int32_t idxE, uint32_t qe) {   //find tE: index of the first item satisfying .s<qe from right
+#ifndef __GAILIST_H__
+#define __GAILIST_H__
+//-------------------------------------------------------------------------------------
+#include "GHashMap.hh"
+#include "GRadixSorter.hh"
+
+template <typename REC> class GAIList {
+  protected:
+	static const int MAXC=10;
+	struct AIRegData {
+	    uint32_t start;   //region start: 0-based
+	    uint32_t end;     //region end: not inclusive
+	    REC data;      //  this could be pointers or an index into a storage array for data
+	                   //  associated with each interval (e.g. GFF records)
+	};
+	struct AICtgData{
+		char *name;  //name of contig
+		int64_t nr, mr;  //number/capacity of glist
+		AIRegData *glist;   //regions data
+		int nc, lenC[MAXC], idxC[MAXC];  //components
+		uint32_t *maxE;                  //augmentation
+	};
+	AICtgData *ctg;            // list of contigs (of size nctg)
+	int32_t nctg, mctg;   // count and max number of contigs
+	//void *hc;              // dict for converting contig names to int
+	GHashMap<const char*, int32_t>* ctghash;
+	// hits data for the last query()
+	uint32_t* hits;
+	uint32_t h_cap;
+	uint32_t h_count;
+	int32_t  h_ctg; //index in ctg[] array
+    //--methods
+	static int32_t bSearch(AIRegData* As, int32_t idxS, int32_t idxE, uint32_t qe);
+	int32_t getCtg(const char *chr) {
+		int32_t* fi=this->ctghash->Find(chr);
+		return fi ? *fi : -1;
+	}
+	void init() {
+		ctghash=new GHashMap<const char*, int32_t>();
+		ctghash->resize(64);
+		nctg = 0;
+		mctg = 32;
+		GMALLOC(ctg, mctg*sizeof(AICtgData));
+		h_count=0;
+		h_cap=1000000;
+		h_ctg=-1;
+		GMALLOC(hits, h_cap*sizeof(uint32_t));
+	}
+	void destroy() {
+		for (int i = 0; i < nctg; ++i){
+			free(ctg[i].name);
+			free(ctg[i].glist);
+			free(ctg[i].maxE);
+		}
+		free(ctg);
+		if (hits) free(hits);
+		delete ctghash;
+	}
+  public:
+	void add(const char *chr, uint32_t s, uint32_t e, REC payload);
+	void build(int cLen); //ailist_construct
+	uint32_t query(const char *chr, uint32_t qs, uint32_t qe);
+	uint32_t hitCount() { return h_count; } //for last query()
+	REC hit(uint32_t hit_idx) { if (hit_idx<h_count) return hits[hit_idx]; } //for last query()
+	GAIList() { this->init(); }
+	~GAIList() { this->destroy(); }
+};
+
+template<class REC> int32_t GAIList<REC>::bSearch(AIRegData* As, int32_t idxS, int32_t idxE, uint32_t qe) {   //find tE: index of the first item satisfying .s<qe from right
     int tE=-1, tL=idxS, tR=idxE-1, tM, d;
     uint32_t v;
     AIRegData* p=As;
@@ -24,41 +87,17 @@ int32_t bSearch(AIRegData* As, int32_t idxS, int32_t idxE, uint32_t qe) {   //fi
     return tE;
 }
 
-void GAIList::init() {
-	ctghash=new GHashMap<const char*, int32_t>();
-	ctghash->resize(64);
-	nctg = 0;
-	mctg = 32;
-	GMALLOC(ctg, mctg*sizeof(AICtgData));
-	h_count=0;
-	h_cap=1000000;
-	GMALLOC(hits, h_cap*sizeof(uint32_t));
-}
+#define GA_REALLOC(ptr, len) ((ptr) = (__typeof__(ptr))realloc((ptr), (len) * sizeof(*(ptr))))
+#define GA_EXPAND(a, m) { (m) = (m)? (m) + ((m)>>1) : 16; GA_REALLOC((a), (m)); }
 
-
-void GAIList::destroy() {
-	for (int i = 0; i < nctg; ++i){
-		free(ctg[i].name);
-		free(ctg[i].glist);
-		free(ctg[i].maxE);
-	}
-	free(ctg);
-	if (hits) free(hits);
-	delete ctghash;
-}
-
-#define CALLOC(type, len) ((type*)calloc((len), sizeof(type)))
-#define REALLOC(ptr, len) ((ptr) = (__typeof__(ptr))realloc((ptr), (len) * sizeof(*(ptr))))
-#define EXPAND(a, m) { (m) = (m)? (m) + ((m)>>1) : 16; REALLOC((a), (m)); }
-
-void GAIList::add(const char *chr, uint32_t s, uint32_t e, uint32_t payload) {
+template<class REC> void GAIList<REC>::add(const char *chr, uint32_t s, uint32_t e, REC payload) {
 	if(s > e) return;
 	bool cnew=false;
 	uint64_t hidx=ctghash->addIfNew(chr, nctg, cnew);
 	AICtgData *q;
 	if (cnew) { //new contig
 		if (nctg == mctg)
-			{ EXPAND(ctg, mctg); }
+			{ GA_EXPAND(ctg, mctg); }
 		q = &ctg[nctg++];
 		q->name=strdup(chr);
 		q->nr=0; q->mr=64;
@@ -69,34 +108,14 @@ void GAIList::add(const char *chr, uint32_t s, uint32_t e, uint32_t payload) {
 	}
 
 	if (q->nr == q->mr)
-		{ EXPAND(q->glist, q->mr); }
+		{ GA_EXPAND(q->glist, q->mr); }
 	AIRegData *p = &q->glist[q->nr++];
 	p->start = s;
 	p->end   = e;
-	p->didx = payload;
+	p->data  = payload;
 }
 
-//-------------------------------------------------------------------------------
-
-void GAIList::loadBED(const char* fn) {
-	gzFile fp;
-	uint32_t k = 0;
-	if ((fp=gzopen(fn, "r"))) {
-		GFStream<gzFile, int (*)(gzFile, voidp, unsigned int)> fs(fp, gzread);
-		Gcstr line;
-		while (fs.getUntil(fs.SEP_LINE, line)>=0) {
-			if (line.len()==0) continue;
-			char *ctg;
-			uint32_t st, en;
-			ctg = parse_bed(line(), &st, &en);
-			if (ctg) this->add(ctg, st, en, k++);
-
-		}
-	} else GError("Error: failed to open file %s\n", fn);
-	gzclose(fp);
-}
-
-void GAIList::build(int cLen) {
+template<class REC> void GAIList<REC>::build(int cLen) {
 	int cLen1=cLen/2, nr, minL = GMAX(64, cLen);
 	cLen += cLen1;
 	int lenT, len, iter, i, j, k, k0, t;
@@ -180,18 +199,13 @@ void GAIList::build(int cLen) {
 	}
 }
 
-inline int32_t GAIList::getCtg(const char *chr) {
-	int32_t* fi=this->ctghash->Find(chr);
-	return fi ? *fi : -1;
-}
-
-uint32_t GAIList::query(char *chr, uint32_t qs, uint32_t qe) {
+template<class REC> uint32_t GAIList<REC>::query(const char *chr, uint32_t qs, uint32_t qe) {
     //interestingly enough having a local copy of the hits-related fields
     // leads to better speed optimization! (likely due to using registers?)
     uint32_t nr = 0, m = h_cap, newc;
     uint32_t* r = hits;
     int32_t gid = getCtg(chr);
-    if(gid>=nctg || gid<0)return 0;
+    if(gid>=nctg || gid<0) { h_ctg=-1; h_count=0; return 0;}
     AICtgData *p = &ctg[gid];
     for(int k=0; k<p->nc; k++) { //search each component
         int32_t cs = p->idxC[k];
@@ -225,6 +239,8 @@ uint32_t GAIList::query(char *chr, uint32_t qs, uint32_t qe) {
     }
     //update back the hits-related fields:
     hits = r, h_cap=m, h_count=nr;
+    h_ctg = gid;
     return nr;
  }
 
+#endif

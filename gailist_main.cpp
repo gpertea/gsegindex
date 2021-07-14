@@ -4,10 +4,30 @@
 //Decomposition & simplication: 11/26/2018
 //Radix sorting and one-pass loading based on lh3's cgranges: 6/20/2019
 //-----------------------------------------------------------------------------
-#include "GAIList.h"
+#include "GAIList.hh"
+#include "iutil.h"
 #define PROGRAM_NAME  "gailist"
 
 int ailist_help(int argc, char **argv, int exit_code);
+
+void loadFromBED(GAIList<int32_t>& a, const char* fn) {
+	gzFile fp;
+	uint32_t k = 0;
+	if ((fp=gzopen(fn, "r"))) {
+		GFStream<gzFile, int (*)(gzFile, voidp, unsigned int)> fs(fp, gzread);
+		Gcstr line;
+		while (fs.getUntil(fs.SEP_LINE, line)>=0) {
+			if (line.len()==0) continue;
+			char *ctg;
+			uint32_t st, en;
+			ctg = parse_bed(line(), &st, &en);
+			if (ctg) a.add(ctg, st, en, k++);
+
+		}
+	} else GError("Error: failed to open file %s\n", fn);
+	gzclose(fp);
+
+}
 
 int main(int argc, char **argv)
 {
@@ -29,8 +49,8 @@ int main(int argc, char **argv)
   //ru.start();
 
   //AIList *ail =  greadBED(argv[1]);
-  GAIList gail;
-  gail.loadBED(argv[1]);
+  GAIList<int32_t> gail;
+  loadFromBED(gail, argv[1]);
 
    //end1 = clock();
     //printf("loading time: %f\n", ((double)(end1-start))/CLOCKS_PER_SEC);

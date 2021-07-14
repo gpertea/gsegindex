@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <memory>
 #include <array>
+#include <cassert>
 
 template <typename REC, typename UINT, UINT REC::* KeyPtr> class GRadixSorter {
    protected:

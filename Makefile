@@ -42,13 +42,13 @@ gbedcov: gbedcov.o iutil.o $(GCLIB)/GBase.o $(GCLIB)/GResUsage.o $(GCLIB)/GStr.o
 ailist: AIList.o iutil.o ailist_main.o $(GCLIB)/GBase.o $(GCLIB)/GResUsage.o
 		${LINKER} ${LDFLAGS} -o $@ ${filter-out %.a %.so, $^} ${LIBS}
 
-gailist: GAIList.o iutil.o gailist_main.o $(GCLIB)/GBase.o $(GCLIB)/GResUsage.o
+gailist: iutil.o gailist_main.o $(GCLIB)/GBase.o $(GCLIB)/GResUsage.o
 		${LINKER} ${LDFLAGS} -o $@ ${filter-out %.a %.so, $^} ${LIBS}
 
 gbedcov.o: iutil.h iutil.cpp gbedcov.cpp
 GAIList.o: iutil.h iutil.cpp GAIList.h GRadixSorter.hh
 ailist_main.o: iutil.h iutil.cpp AIList.h AIList.cpp
-gailist_main.o: iutil.h iutil.cpp GAIList.h GAIList.cpp
+gailist_main.o: iutil.h iutil.cpp GAIList.hh
 
 bedcov-iitree-bfs.o: bedcov-iitree-bfs.cpp IITreeBFS.h
 bedcov-iitree.o: bedcov-iitree.cpp IITree.h
