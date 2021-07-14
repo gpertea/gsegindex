@@ -25,7 +25,7 @@ template <typename REC> class GAIList {
 		int nc, lenC[MAXC], idxC[MAXC];  //components
 		uint32_t *maxE;                  //augmentation
 	};
-	AICtgData *ctg;            // list of contigs (of size nctg)
+	AICtgData *ctgs;            // list of contigs (of size nctg)
 	int32_t nctg, mctg;   // count and max number of contigs
 	//void *hc;              // dict for converting contig names to int
 	GHashMap<const char*, int32_t>* ctghash;
@@ -45,7 +45,7 @@ template <typename REC> class GAIList {
 		ctghash->resize(64);
 		nctg = 0;
 		mctg = 32;
-		GMALLOC(ctg, mctg*sizeof(AICtgData));
+		GMALLOC(ctgs, mctg*sizeof(AICtgData));
 		h_count=0;
 		h_cap=1000000;
 		h_ctg=-1;
@@ -53,11 +53,11 @@ template <typename REC> class GAIList {
 	}
 	void destroy() {
 		for (int i = 0; i < nctg; ++i){
-			free(ctg[i].name);
-			free(ctg[i].glist);
-			free(ctg[i].maxE);
+			free(ctgs[i].name);
+			free(ctgs[i].glist);
+			free(ctgs[i].maxE);
 		}
-		free(ctg);
+		free(ctgs);
 		if (hits) free(hits);
 		delete ctghash;
 	}
@@ -66,7 +66,35 @@ template <typename REC> class GAIList {
 	void build(int cLen); //ailist_construct
 	uint32_t query(const char *chr, uint32_t qs, uint32_t qe);
 	uint32_t hitCount() { return h_count; } //for last query()
-	REC hit(uint32_t hit_idx) { if (hit_idx<h_count) return hits[hit_idx]; } //for last query()
+	REC hit(uint32_t hit_idx) { //for last query()
+		if (hit_idx<h_count && h_ctg>=0) {
+			uint32_t h=hits[hit_idx];
+			return ctgs[h_ctg].glist[h].data;
+		}
+	   return -1;
+	}
+	const char* hit_ctg(uint32_t hit_idx) { //for last query()
+		if (hit_idx<h_count && h_ctg>=0) {
+			return ctgs[h_ctg].name;
+		}
+	   return NULL;
+	}
+	uint32_t hit_start(uint32_t hit_idx) { //for last query()
+		if (hit_idx<h_count && h_ctg>=0) {
+			uint32_t h=hits[hit_idx];
+			return ctgs[h_ctg].glist[h].start;
+		}
+	   return (uint32_t)-1;
+	}
+	uint32_t hit_end(uint32_t hit_idx) { //for last query()
+		if (hit_idx<h_count && h_ctg>=0) {
+			uint32_t h=hits[hit_idx];
+			return ctgs[h_ctg].glist[h].end;
+		}
+	   return (uint32_t)-1;
+	}
+
+	const char* ctg(int32_t id) { if ((uint32_t)id<nctg) return ctgs[id]; return NULL; }
 	GAIList() { this->init(); }
 	~GAIList() { this->destroy(); }
 };
@@ -97,14 +125,14 @@ template<class REC> void GAIList<REC>::add(const char *chr, uint32_t s, uint32_t
 	AICtgData *q;
 	if (cnew) { //new contig
 		if (nctg == mctg)
-			{ GA_EXPAND(ctg, mctg); }
-		q = &ctg[nctg++];
+			{ GA_EXPAND(ctgs, mctg); }
+		q = &ctgs[nctg++];
 		q->name=strdup(chr);
 		q->nr=0; q->mr=64;
 		GMALLOC( q->glist, (q->mr * sizeof(AIRegData)) );
 		ctghash->setKey(hidx, q->name);
 	} else {
-		q = &ctg[ctghash->getValue(hidx)];
+		q = &ctgs[ctghash->getValue(hidx)];
 	}
 
 	if (q->nr == q->mr)
@@ -123,7 +151,7 @@ template<class REC> void GAIList<REC>::build(int cLen) {
 	//KRadixSorter<AIRegData, uint32_t, & AIRegData::start> rdx;
 	for(i=0; i<nctg; i++){
 		//1. Decomposition
-		AICtgData *p    = &ctg[i];
+		AICtgData *p    = &ctgs[i];
 		AIRegData *L1 = p->glist;  //L1: to be rebuilt
 		nr = p->nr;
 		//radix_sort_intv(L1, L1+nr);
@@ -206,7 +234,7 @@ template<class REC> uint32_t GAIList<REC>::query(const char *chr, uint32_t qs, u
     uint32_t* r = hits;
     int32_t gid = getCtg(chr);
     if(gid>=nctg || gid<0) { h_ctg=-1; h_count=0; return 0;}
-    AICtgData *p = &ctg[gid];
+    AICtgData *p = &ctgs[gid];
     for(int k=0; k<p->nc; k++) { //search each component
         int32_t cs = p->idxC[k];
         int32_t ce = cs + p->lenC[k];

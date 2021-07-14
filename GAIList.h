@@ -29,7 +29,7 @@ template <typename REC> class GAIList {
 		uint32_t *maxE;                  //augmentation
 	};
 	//AICtgData *ctglst; // list of contigs (of size nctg)
-	AICtgData *ctg;            // list of contigs (of size nctg)
+	AICtgData *ctgs;            // list of contigs (of size nctg)
 	int32_t nctg, mctg;   // count and max number of contigs
 	//void *hc;              // dict for converting contig names to int
 	GHashMap<const char*, int32_t>* ctghash;
@@ -48,18 +48,18 @@ template <typename REC> class GAIList {
 		ctghash->resize(64);
 		nctg = 0;
 		mctg = 32;
-		GMALLOC(ctg, mctg*sizeof(AICtgData));
+		GMALLOC(ctgs, mctg*sizeof(AICtgData));
 		h_count=0;
 		h_cap=1000000;
 		GMALLOC(hits, h_cap*sizeof(uint32_t));
 	}
 	void destroy() {
 		for (int i = 0; i < nctg; ++i){
-			free(ctg[i].name);
-			free(ctg[i].glist);
-			free(ctg[i].maxE);
+			free(ctgs[i].name);
+			free(ctgs[i].glist);
+			free(ctgs[i].maxE);
 		}
-		free(ctg);
+		free(ctgs);
 		if (hits) free(hits);
 		delete ctghash;
 	}
