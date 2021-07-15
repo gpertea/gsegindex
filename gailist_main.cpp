@@ -10,7 +10,7 @@
 
 int ailist_help(int argc, char **argv, int exit_code);
 
-void loadFromBED(GAIList<int32_t>& a, const char* fn) {
+void loadFromBED(GAIListSet<int32_t>& a, const char* fn) {
 	gzFile fp;
 	uint32_t k = 0;
 	if ((fp=gzopen(fn, "r"))) {
@@ -29,7 +29,7 @@ void loadFromBED(GAIList<int32_t>& a, const char* fn) {
 
 }
 
-void showHits(GAIList<int32_t>& a) {
+void showHits(GAIListSet<int32_t>& a) {
    int nh=a.hitCount();
    for (int i=0;i<nh;i++) {
 	   const char* ctg=a.hitCtg(i);
@@ -60,7 +60,7 @@ int main(int argc, char **argv)
   //ru.start();
 
   //AIList *ail =  greadBED(argv[1]);
-  GAIList<int32_t> gail;
+  GAIListSet<int32_t> gail;
   loadFromBED(gail, argv[1]);
 
    //end1 = clock();
