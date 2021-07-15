@@ -108,7 +108,7 @@ int main(int argc, char **argv)
 			//nhits=ail.query(ctg, st1, en1, hits);
 			if (pmode==0 && nhits>0)
 				printf("%s\t%d\t%d\t%d\n", ctg, st1, en1, nhits);
-			showHits(gail);
+			//showHits(gail);
 			nol += nhits;
 		}
 	} else GError("Error: failed to open file %s\n", argv[2]);
