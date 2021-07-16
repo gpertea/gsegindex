@@ -114,33 +114,36 @@ template <typename REC> class GAIListSet {
 			char *name;  //name of contig
 			GAIList<REC> ailst; //interval list for each contig
 			AICtgData(const char* ctg=NULL):name(NULL), ailst() {
-				 if (ctg) name=strdup(ctg);
+				 //ctg must be duplicated when not sharing strings
+				 name=const_cast<char *>(ctg); 
 			}
-			~AICtgData() { free(name); }
+
+			//~AICtgData() { free(name); }
 	};
 	// hits data for the last query()
 	uint32_t* hits;
 	uint32_t h_cap;
 	uint32_t h_count;
     int32_t  h_ctg; //index in ctg[] array
+	bool shCtgNames;
   public:
 	GDynArray<AICtgData*> ctgs;            // collection of contigs (of size nctg)
 	//int32_t nctg, mctg;   // count and max number of contigs
 	GHashMap<const char*, int32_t>* ctghash;
 	bool ready=false; //ready for query (only after build() was called)
 
-    GAIListSet():hits(NULL), h_cap(1000000), h_count(0), h_ctg(-1), ctgs(32) {
+    GAIListSet(bool externalContigNames=false):hits(NULL), h_cap(1000000), h_count(0), 
+	 		h_ctg(-1), shCtgNames(externalContigNames),ctgs(32) {
 	    ctghash=new GHashMap<const char*, int32_t>();
 		ctghash->resize(64);
-		//nctg = 0; mctg = 32;
 		ready=false;
-		//GMALLOC(ctgs, mctg*sizeof(AICtgData));
 		GMALLOC(hits, h_cap*sizeof(uint32_t));
 	}
-
 	~GAIListSet() {
-		for (uint i=0; i < ctgs.Count();++i)
+		for (uint i=0; i < ctgs.Count();++i) {
+			if (!shCtgNames) free(ctgs[i]->name);
 			delete ctgs[i];
+		}
 		if (hits) free(hits);
 		delete ctghash;
 	}
@@ -165,7 +168,10 @@ template <typename REC> class GAIListSet {
 		if (cnew) {
 		  q=new AICtgData(chr);
 		  ctgs.Add(q);
-		  ctghash->setKey(hidx, q->name);
+		  if (!shCtgNames) {
+			 q->name=strdup(chr);
+		     ctghash->setKey(hidx, q->name);
+		  }
 		}
 		else q=ctgs[ctghash->getValue(hidx)];
 		q->ailst.add(s,e,payload);
